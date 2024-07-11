@@ -4,13 +4,13 @@
 #include "Solver.h"
 
 
-int main() {
+int main(int argc, char ** argv) {
     std::vector<int> var, ref, dep;
     std::vector<std::list<int> > link_list;
     int n,K,r;
 
-    std::ifstream fin("input.txt");
-    K=10;
+    std::ifstream fin(argv[1]);
+    K=3;
     fin >> n;
     var.resize(n);
     ref.resize(n);
@@ -31,14 +31,16 @@ int main() {
     }
 
     Solver solver(var,ref,K,link_list,r);
+    real answer = solver.main(1e-5);
 
-    solver.init_range(0,1);
-
-    solver.dfs(solver.root);
-
-    real answer = solver.answer();
-
-    std::cout << answer << std::endl;
-
+//    solver.init_range(0,1);
+//
+//    solver.dfs(solver.root);
+//
+//    real answer = solver.answer();
+//
+//    solver.backtrace();
+//
+    printf("%.12lf\n",answer);
     return 0;
 }

@@ -14,6 +14,9 @@ Node::Node(int n_intervals):
 Solver::Solver(const std::vector<int> &var, const std::vector<int> &ref, int n_intervals,
                const std::vector<std::list<int> > &llist, int root):
 nodes(var.size(), n_intervals),
+dual_vars(var.size()),
+F(var.size()),
+n_intervals(n_intervals),
 root(root)
 {
     for (int i = 0,ch_idx; i < var.size(); i++){
@@ -43,24 +46,61 @@ void Solver::init_range(real fl, real fu){
     }
 }
 
+void Solver::init_range(std::vector<real> &mid, real fu){
+    for (int i = 0; i < nodes.size(); i++){
+        nodes[i].pwl.update(mid[i]-fu,mid[i]+fu,nodes[i].func);
+    }
+}
+
 void Solver::dfs(int node) {
     for (auto ch:nodes[node].children)
         dfs(ch);
     nodes[node].dpstate.update(nodes[node].c_state,nodes[node].pwl);
 }
 
+void Solver::dfs_BT(int node, real value) {
+//    if (nodes[node].children.empty()) dual_vars[node] = 0;
+//    else
+    dual_vars[node] = nodes[node].dpstate.backtrace(value);
+    F[node] = 0;
+    for (auto ch: nodes[node].children){
+        dfs_BT(ch,dual_vars[node]);
+        F[node] += F[ch];
+    }
+    F[node] = std::max(F[node],nodes[node].pwl.bt_f(dual_vars[node]-value));
+}
+
 real Solver::answer() {
     int k = std::lower_bound(nodes[root].dpstate.slope.begin(), nodes[root].dpstate.slope.end(), 1,
                              std::greater<real>())
             - nodes[root].dpstate.slope.begin();
-    std::cout << "at " << k << std::endl;
-    real answer = nodes[root].dpstate.y[0], cx = 0;
+    real answer = nodes[root].dpstate.y[0];
     for (int i = 1; i <= k; i++) {
         answer += nodes[root].dpstate.slope[i-1]* (nodes[root].dpstate.x[i]-nodes[root].dpstate.x[i-1]);
     }
+    dual_0 = nodes[root].dpstate.x[k];
     return answer;
 }
 
 void Solver::backtrace() {
+    dfs_BT(root, dual_0);
+}
 
+real Solver::main(real accuracy) {
+
+    this->init_range(0,1);
+    real ans,range = 0.5;
+    do {
+        dfs(this->root);
+
+        ans = answer();
+
+        backtrace();
+
+        range = range*2/n_intervals;
+
+        init_range(F, range);
+    } while (range>accuracy);
+
+    return ans;
 }

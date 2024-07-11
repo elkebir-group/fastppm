@@ -28,32 +28,8 @@ public:
 //    std::vector<real> & neg_dual_d_slope;//k+1 //dual_d_slope is identical to -prime_x which is decreasing
 
     void update(real begin, real end, const Func & func);
-};
 
-class DPSTATE{ //concave and increasing, max, w r t to a single var, defined on [0,inf)
-public:
-    //result
-    int effective_k;
-    std::vector<real> x; //k
-    std::vector<real> y;
-    std::vector<real> slope; //k+1 //decreasing
-
-    //sum //concave and increasing
-    int cnt, nbrk;
-    std::vector<std::pair<real, real> > brk_points;
-    std::vector<real> sum_x;
-    std::vector<real> sum_y;
-    std::vector<real> sum_slope; // decreasing
-
-    std::vector<real>::iterator it;//tmp_var
-
-    DPSTATE();
-
-    void init(int n_children, int k);
-
-    void zero(PWL &a);
-
-    void update(std::vector<DPSTATE*> & to_sum, PWL & a);
+    real bt_f(real d_dual);
 };
 
 #endif //EFFICIENTLLHESTIMATOR_PWL_H
