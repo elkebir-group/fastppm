@@ -31,11 +31,11 @@ public:
 
     DPSTATE();
 
-    void init(int n_children, int k);
+    void init(int n_descendant, int k);
 
     void zero(PWL &a);
 
-    void update(std::vector<DPSTATE*> & to_sum, PWL & a);
+    void update(std::vector<DPSTATE*> & to_sum, PWL & a, bool debug=false);
 
     real traceback_x;
     real backtrace(real val);

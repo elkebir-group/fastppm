@@ -13,19 +13,19 @@ DPSTATE::DPSTATE()
 
 }
 
-void DPSTATE::init(int n_children, int k) {
-    x.resize(k * (n_children + 1) + 2);
-    y.resize(k * (n_children + 1) + 2);
-    slope.resize(k * (n_children + 1) + 2);
-    brk_points.resize(n_children * k + 1);
-    prime_x_BT.resize(k * (n_children + 1) + 2);
-    dual_d_a_BT.resize(k * (n_children + 1) + 2);
-    sum_x.resize(n_children * k + 1);
-    sum_y.resize(n_children * k + 1);
-    sum_slope.resize(n_children * k + 2);
+void DPSTATE::init(int n_descendant, int k) {
+    x.resize(k * (n_descendant + 1) + 2);
+    y.resize(k * (n_descendant + 1) + 2);
+    slope.resize(k * (n_descendant + 1) + 2);
+    brk_points.resize(n_descendant * k + 1);
+    prime_x_BT.resize(k * (n_descendant + 1) + 2);
+    dual_d_a_BT.resize(k * (n_descendant + 1) + 2);
+    sum_x.resize(n_descendant * k + 1);
+    sum_y.resize(n_descendant * k + 1);
+    sum_slope.resize(n_descendant * k + 2);
 }
 
-void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a) {
+void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a, bool debug) {
     if (to_sum.empty()) {//leaf a_i = 0, h(-d)
         zero(a);
         return;
@@ -63,6 +63,9 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a) {
     }
 
     //add h(d) and max over a_i, never strictly increasing => a neg d slop[-1] >= sum_slope[-1]
+    if (a.neg_dual_d_slope[a.k] < sum_slope[cnt] || debug){
+        printf("We have a problem!! %lf %lf\n",a.neg_dual_d_slope[a.k],sum_slope[cnt]);
+    }
     if (a.neg_dual_d_slope[0] >= sum_slope[0]) { //always decreasing // a_i = 0 <=> lb of [fp] >= s ub of [fc]
         zero(a);
         y[0] += sum_y[0];
@@ -80,7 +83,7 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a) {
             }
             while (aidx <= a.k && (sumidx <= 0 || a.neg_dual_d_slope[aidx] < sum_slope[sumidx - 1])) {
                 //a_i = sum_x[sumidx], ([idx-1]<)a_i - a_pi < d_x[aidx]
-                if (aidx >= a.k || sum_x[sumidx] <= a.dual_d_x[aidx]) {
+                if (aidx >= a.k  || sum_x[sumidx] <= a.dual_d_x[aidx]) {
                     dual_d_a_BT[effective_k] = sum_x[sumidx];
                     slope[effective_k] = a.neg_dual_d_slope[aidx];
                     break_flag = true;
@@ -97,6 +100,7 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a) {
             if (break_flag) break;
         } else { // a.neg_dual_d_slope[aidx] < sum_slope[sumidx]
             while (aidx < a.k && a.neg_dual_d_slope[aidx + 1] < sum_slope[sumidx]) {
+                printf("%.10lf\n",a.neg_dual_d_slope[aidx + 1] - sum_slope[sumidx]);
                 aidx++;
             }
             while (sumidx>=0 && a.neg_dual_d_slope[aidx + 1] >= sum_slope[sumidx]) {
@@ -108,7 +112,6 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a) {
                     break;
                 }
                 dual_d_a_BT[effective_k] = sum_x[sumidx];
-//                prime_x_BT[effective_k] = su;
                 x[effective_k] = sum_x[sumidx] - a.dual_d_x[aidx];
                 y[effective_k] = sum_y[sumidx] + a.dual_d_y[aidx];
                 slope[effective_k] = sum_slope[sumidx];

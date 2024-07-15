@@ -10,7 +10,7 @@ int main(int argc, char ** argv) {
     int n,K,r;
 
     std::ifstream fin(argv[1]);
-    K=3;
+    K = std::stoi(argv[2]);
     fin >> n;
     var.resize(n);
     ref.resize(n);
@@ -31,16 +31,16 @@ int main(int argc, char ** argv) {
     }
 
     Solver solver(var,ref,K,link_list,r);
-    real answer = solver.main(1e-5);
+//    real answer = solver.main();
 
-//    solver.init_range(0,1);
-//
-//    solver.dfs(solver.root);
-//
-//    real answer = solver.answer();
-//
+    solver.init_range(0,1);
+
+    solver.dfs(solver.root);
+
+    real answer = solver.answer();
+
 //    solver.backtrace();
-//
+
     printf("%.12lf\n",answer);
     return 0;
 }

@@ -3,11 +3,13 @@
 //
 
 #include "Solver.h"
+#include <stack>
 #include <iostream>
 
 Node::Node(int n_intervals):
         pwl(n_intervals),
-        dpstate()
+        dpstate(),
+        size(0)
 {
 }
 
@@ -19,10 +21,28 @@ F(var.size()),
 n_intervals(n_intervals),
 root(root)
 {
+    std::stack<int> Stack1, Stack2;
+    Stack1.push(root); int top;
+    while (!Stack1.empty()){
+        top = Stack1.top();
+        Stack1.pop(); Stack2.push(top);
+        for (auto c:llist[top]){
+            Stack1.push(c);
+        }
+    }
+    while (!Stack2.empty()){
+        top = Stack2.top();
+        Stack2.pop();
+        nodes[top].size = 1;
+        for (auto c:llist[top]){
+            nodes[top].size += nodes[c].size;
+        }
+    }
+
     for (int i = 0,ch_idx; i < var.size(); i++){
         nodes[i].func.var = var[i];
         nodes[i].func.ref = ref[i];
-        nodes[i].dpstate.init(llist[i].size(),n_intervals);
+        nodes[i].dpstate.init(nodes[i].size,n_intervals);
         nodes[i].c_state.resize(llist[i].size());
         nodes[i].children.resize(llist[i].size());
         ch_idx=0;
@@ -55,6 +75,7 @@ void Solver::init_range(std::vector<real> &mid, real fu){
 void Solver::dfs(int node) {
     for (auto ch:nodes[node].children)
         dfs(ch);
+    printf("-----node %d-----\n",node);
     nodes[node].dpstate.update(nodes[node].c_state,nodes[node].pwl);
 }
 
@@ -86,21 +107,17 @@ void Solver::backtrace() {
     dfs_BT(root, dual_0);
 }
 
-real Solver::main(real accuracy) {
+real Solver::main() {
 
     this->init_range(0,1);
-    real ans,range = 0.5;
-    do {
-        dfs(this->root);
 
-        ans = answer();
+    real ans;
 
-        backtrace();
+    dfs(this->root);
 
-        range = range*2/n_intervals;
+    ans = answer();
 
-        init_range(F, range);
-    } while (range>accuracy);
+//    backtrace();
 
     return ans;
 }

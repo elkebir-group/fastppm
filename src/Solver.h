@@ -13,6 +13,7 @@
 struct Node {
     Func func;
     PWL pwl;
+    int size;
     DPSTATE dpstate;
     std::vector<int> children;
     std::vector<DPSTATE*> c_state;
@@ -36,7 +37,7 @@ public:
     void dfs_BT(int node, real value);
     real answer();
     void backtrace();
-    real main(real accuracy=1e-5);
+    real main();
 };
 
 
