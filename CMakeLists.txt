@@ -3,4 +3,4 @@ project(EfficientLLHEstimator)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(EfficientLLHEstimator src/main.cpp src/Solver.cpp src/Solver.h src/PWL.cpp src/PWL.h src/Func.h src/Func.cpp src/DPSTATE.cpp src/DPSTATE.h)
+add_executable(EfficientLLH src/main.cpp src/Solver.cpp src/Solver.h src/PWL.cpp src/PWL.h src/Func.h src/Func.cpp src/DPSTATE.cpp src/DPSTATE.h)
