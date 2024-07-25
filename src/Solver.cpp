@@ -75,8 +75,7 @@ void Solver::init_range(std::vector<real> &mid, real fu){
 void Solver::dfs(int node) {
     for (auto ch:nodes[node].children)
         dfs(ch);
-    printf("-----node %d-----\n",node);
-    nodes[node].dpstate.update(nodes[node].c_state,nodes[node].pwl, node ==5 || node==32);
+    nodes[node].dpstate.update(nodes[node].c_state,nodes[node].pwl);
 }
 
 void Solver::dfs_BT(int node, real value) {

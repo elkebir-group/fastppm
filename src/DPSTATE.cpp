@@ -8,7 +8,7 @@
 
 typedef std::pair<DPSTATE*, int> priority_queue_helper;
 inline bool operator < (const priority_queue_helper & a, const priority_queue_helper & b){
-    return a.first->x[a.second] < b.first->x[b.second];
+    return a.first->x[a.second] > b.first->x[b.second];
 }
 
 #define dual_d_x prime_slope
@@ -46,6 +46,11 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a, bool debug) {
 
     for (auto it: to_sum) {
         _priority_queue.emplace(priority_queue_helper(it, 1));
+        for (int i=1; i <= it->effective_k; i++){
+            if (it->x[i] < it->x[i-1]){
+                printf("!!!!: %lf %lf\n",it->x[i],it->x[i-1]);
+            }
+        }
         sum_slope[0] += it->slope[0];
         sum_y[0] += it->y[0];
     }
@@ -54,12 +59,17 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a, bool debug) {
     while (!_priority_queue.empty()){
         _top = _priority_queue.top();
         _priority_queue.pop();
-        if (_top.second >= _top.first->effective_k) continue;
+        if (_top.second > _top.first->effective_k) continue;
         brk_points[nbrk].first = _top.first->x[_top.second];
         brk_points[nbrk].second = _top.first->slope[_top.second] - _top.first->slope[_top.second - 1];
         nbrk ++;
         _top.second++;
         _priority_queue.push(_top);
+    }
+    for (int a=1;a < nbrk;a++){
+        if (brk_points[a].first < brk_points[a-1].first){
+            printf("%lf %lf\n",brk_points[a].first, brk_points[a-1].first);
+        }
     }
 
 //    std::sort(brk_points.begin(), brk_points.begin() + nbrk);
