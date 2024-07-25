@@ -46,11 +46,6 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a, bool debug) {
 
     for (auto it: to_sum) {
         _priority_queue.emplace(priority_queue_helper(it, 1));
-        for (int i=1; i <= it->effective_k; i++){
-            if (it->x[i] < it->x[i-1]){
-                printf("!!!!: %lf %lf\n",it->x[i],it->x[i-1]);
-            }
-        }
         sum_slope[0] += it->slope[0];
         sum_y[0] += it->y[0];
     }
@@ -65,11 +60,6 @@ void DPSTATE::update(std::vector<DPSTATE*> & to_sum, PWL &a, bool debug) {
         nbrk ++;
         _top.second++;
         _priority_queue.push(_top);
-    }
-    for (int a=1;a < nbrk;a++){
-        if (brk_points[a].first < brk_points[a-1].first){
-            printf("%lf %lf\n",brk_points[a].first, brk_points[a-1].first);
-        }
     }
 
 //    std::sort(brk_points.begin(), brk_points.begin() + nbrk);

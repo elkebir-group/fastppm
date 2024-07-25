@@ -39,7 +39,7 @@ int main(int argc, char ** argv) {
 
     real answer = solver.answer();
 
-//    solver.backtrace();
+    solver.backtrace();
 
     printf("%.12lf\n",answer);
     return 0;
