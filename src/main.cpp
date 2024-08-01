@@ -12,6 +12,8 @@ int main(int argc, char ** argv) {
     std::ifstream fin(argv[1]);
     K = std::stoi(argv[2]);
     fin >> n;
+
+    helper.resize((n+2)*(K+2));
     var.resize(n);
     ref.resize(n);
     dep.resize(n);
@@ -30,17 +32,24 @@ int main(int argc, char ** argv) {
         link_list[u].push_back(v);
     }
 
-    Solver solver(var,ref,K,link_list,r);
-//    real answer = solver.main();
+    Solver solver(501,100);
+    solver.init(var,ref,link_list,r);
 
-    solver.init_range(0,1);
+    FILE* _in = fopen("debug.txt","r");
+    _d_y0.resize(n);
+    for (int i = 0; i < n; i++){
+        fscanf(_in,"%d : %lf\n", &i, &_d_y0[i]);
+    }
 
-    solver.dfs(solver.root);
-
-    real answer = solver.answer();
-
-    solver.backtrace();
+    real answer = solver.main(0.6,1e-6);
 
     printf("%.12lf\n",answer);
+
+    for (int i = 0; i < n; i++){
+        printf("%d : %.12lf\n",i, solver.F[i]);
+    }
+
+    double obj_recal = 0;
+    printf("%.12lf\n", obj_recal);
     return 0;
 }

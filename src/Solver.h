@@ -7,37 +7,37 @@
 #include <list>
 
 #include "Func.h"
-#include "DPSTATE.h"
 #include "PWL.h"
-
-struct Node {
-    Func func;
-    PWL pwl;
-    int size;
-    DPSTATE dpstate;
-    std::vector<int> children;
-    std::vector<DPSTATE*> c_state;
-    Node(int n_intervals);
-};
 
 class Solver {
 public:
-    DPSTATE *r_dpstate;
-    int root; real dual_0;
-    int n_intervals;
-    std::vector<Node> nodes;
+    int n_intervals, n, root;
+    real dual_0;
+    std::vector<Func> funcs;
+    std::vector<PWL_close> primal;
+    std::vector<PWL_open> dual;
+    std::vector<PWL_Ropen> states;
+    std::vector<PWL_Ropen> sum;
+
     std::vector<real> dual_vars;
     std::vector<real> F;//
-    Solver(const std::vector<int> & var, const std::vector<int> & ref, int n_intervals,
-           const std::vector<std::list<int> > & llist, int root);
-    void init_range(std::vector<real> & fl, std::vector<real> & fu);
-    void init_range(real fl, real fu);
+    std::vector<std::vector<int> > children;
+    std::vector<std::vector<PWL_Ropen*> > children_state;
+    Solver(int max_n, int k);
+    void init(const std::vector<int> &var, const std::vector<int> &ref,
+              const std::vector<std::list<int> > &llist, int root);
     void init_range(std::vector<real> & mid, real range);
+
     void dfs(int node);
     void dfs_BT(int node, real value);
+
     real answer();
-    void backtrace();
-    real main();
+    real main(real frac=0.75, real obj=1e-6);
+
+    ////////debug purpose only
+    std::vector<real> F_min,F_scm;
+    std::vector<real> step,all_;
+    void my_assertions(std::vector<real> &mid, real fu, int node);
 };
 
 

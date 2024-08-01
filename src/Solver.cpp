@@ -4,119 +4,143 @@
 
 #include "Solver.h"
 #include <stack>
-#include <iostream>
+#include <cassert>
 
-Node::Node(int n_intervals):
-        pwl(n_intervals),
-        dpstate(),
-        size(0)
+Solver::Solver(int max_n, int k):
+F(max_n),
+dual_vars(max_n),
+n_intervals(k),
+funcs(max_n),
+primal(max_n,k),
+dual(max_n,k+1),
+sum(max_n,(max_n+1)*(k+1)),
+states(max_n, (max_n+1)*(k+1)),
+children(max_n),
+children_state(max_n),
+F_min(max_n),
+F_scm(max_n),
+step(max_n),
+all_(max_n)
 {
 }
 
-Solver::Solver(const std::vector<int> &var, const std::vector<int> &ref, int n_intervals,
-               const std::vector<std::list<int> > &llist, int root):
-nodes(var.size(), n_intervals),
-dual_vars(var.size()),
-F(var.size()),
-n_intervals(n_intervals),
-root(root)
-{
-    std::stack<int> Stack1, Stack2;
-    Stack1.push(root); int top;
-    while (!Stack1.empty()){
-        top = Stack1.top();
-        Stack1.pop(); Stack2.push(top);
-        for (auto c:llist[top]){
-            Stack1.push(c);
+void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
+               const std::vector<std::list<int> > &llist, int root) {
+    n = var.size();
+    this->root = root;
+    for (int i = 0,idx; i < n; i++) {
+        children[i] = std::vector<int>(llist[i].begin(),llist[i].end());
+        children_state[i].resize(llist[i].size());
+        idx=0;
+        for (auto j:llist[i]) {
+            children_state[i][idx++] = &states[j];
         }
+        funcs[i] = {real(var[i]), real(ref[i])};
     }
-    while (!Stack2.empty()){
-        top = Stack2.top();
-        Stack2.pop();
-        nodes[top].size = 1;
-        for (auto c:llist[top]){
-            nodes[top].size += nodes[c].size;
-        }
-    }
-
-    for (int i = 0,ch_idx; i < var.size(); i++){
-        nodes[i].func.var = var[i];
-        nodes[i].func.ref = ref[i];
-        nodes[i].dpstate.init(nodes[i].size,n_intervals);
-        nodes[i].c_state.resize(llist[i].size());
-        nodes[i].children.resize(llist[i].size());
-        ch_idx=0;
-        for (auto ch:llist[i]){
-            nodes[i].c_state[ch_idx] = & nodes[ch].dpstate;
-            nodes[i].children[ch_idx] = ch;
-            ch_idx++;
-        }
-    }
-}
-
-void Solver::init_range(std::vector<real> & fl, std::vector<real> & fu){
-    for (int i = 0; i < nodes.size(); i++){
-        nodes[i].pwl.update(fl[i],fu[i],nodes[i].func);
-    }
-}
-
-void Solver::init_range(real fl, real fu){
-    for (int i = 0; i < nodes.size(); i++){
-        nodes[i].pwl.update(fl,fu,nodes[i].func);
-    }
+    std::fill(F.begin(), F.end(), 0.5);
 }
 
 void Solver::init_range(std::vector<real> &mid, real fu){
-    for (int i = 0; i < nodes.size(); i++){
-        nodes[i].pwl.update(mid[i]-fu,mid[i]+fu,nodes[i].func);
+    for (int i = 0; i < n; i++){
+        primal[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,funcs[i]);
+        assert(primal[i].self_check());
+        dual[i].dual_from_primal(primal[i]);
+        assert(dual[i].self_check());
     }
 }
 
 void Solver::dfs(int node) {
-    for (auto ch:nodes[node].children)
-        dfs(ch);
-    nodes[node].dpstate.update(nodes[node].c_state,nodes[node].pwl);
+//    if (node == 201){
+//        system("pause");
+//    }
+    if (children[node].empty()){
+        states[node].base_case(dual[node]);
+    }
+    else {
+        for (auto ch:children[node])
+            dfs(ch);
+        sum[node].sum(children_state[node], helper);
+        assert(sum[node].self_check());
+        states[node].optimize_with(sum[node],dual[node]);
+        assert(states[node].self_check());
+    }
+    if (abs(sum[node].slope[sum[node].k-1]-F_scm[node]) > Compare_eps){
+        printf("%d : %lf %lf\n",node,sum[node].slope[sum[node].k-1], F_scm[node]);
+        printf("ERROR\n");
+    }
 }
 
 void Solver::dfs_BT(int node, real value) {
-//    if (nodes[node].children.empty()) dual_vars[node] = 0;
-//    else
-    dual_vars[node] = nodes[node].dpstate.backtrace(value);
-    F[node] = 0;
-    for (auto ch: nodes[node].children){
-        dfs_BT(ch,dual_vars[node]);
-        F[node] += F[ch];
+    real check1,check2;
+    if (children[node].empty()) {
+        dual_vars[node] = 0;
+        check1 = dual[node](-value);
     }
-    F[node] = std::max(F[node],nodes[node].pwl.bt_f(dual_vars[node]-value));
+    else {
+        dual_vars[node] = sum[node].backtrace(dual[node],value, &check1);
+    }
+    check2 = states[node](value);
+    real min_val = primal[node].backtrace(dual_vars[node] - value, &step[node] ), sum = 0;
+    all_[node]=0;
+    for (auto ch: children[node]) {
+        dfs_BT(ch, dual_vars[node]);
+        all_[node]+=all_[ch];
+    }
+    all_[node]+=step[node];
+    F[node] = min_val;
+    real a=std::min(std::min(check1,check2),all_[node]), b=std::max(std::max(check1,check2),all_[node]);
+    if (b-a>1e-6){
+        printf("%d: %lf %lf %lf\n",node, check1, check2, all_[node]);
+        printf("ERROR\n");
+    }
 }
 
 real Solver::answer() {
-    int k = std::lower_bound(nodes[root].dpstate.slope.begin(), nodes[root].dpstate.slope.end(), 1,
+    int k = std::lower_bound(states[root].slope.begin(), states[root].slope.begin()+states[root].k, 1,
                              std::greater<real>())
-            - nodes[root].dpstate.slope.begin();
-    real answer = nodes[root].dpstate.y[0];
-    for (int i = 1; i <= k; i++) {
-        answer += nodes[root].dpstate.slope[i-1]* (nodes[root].dpstate.x[i]-nodes[root].dpstate.x[i-1]);
-    }
-    dual_0 = nodes[root].dpstate.x[k];
+            - states[root].slope.begin(); // this should just simply be zero all the time.
+    real answer = states[root].y[k];
+    dual_0 =  states[root].x[k];
     return answer;
 }
 
-void Solver::backtrace() {
-    dfs_BT(root, dual_0);
-}
 
-real Solver::main() {
+real Solver::main(real frac, real obj) {
 
-    this->init_range(0,1);
+    this->init_range(F,0.51);
 
-    real ans;
+    my_assertions(this->F, 0.51, root);
 
-    dfs(this->root);
+    real range = 1, ans;
+    do  {
+            dfs(this->root);
 
-    ans = answer();
+            ans = answer();
 
-//    backtrace();
+            printf("iteration: obj=%.12lf\n",ans);
+
+            dfs_BT(root, dual_0);
+
+            range = range*frac;
+
+            this->init_range(this->F,range/2);
+
+            my_assertions(this->F, range/2, root);
+
+        }while(range/n_intervals > obj);
 
     return ans;
+}
+
+
+void Solver::my_assertions(std::vector<real> &mid, real fu, int node){
+    F_scm[node] = 0;
+    for (auto ch: children[node]){
+        my_assertions(mid,fu,ch);
+        F_scm[node]+=std::max(F_min[ch],F_scm[ch]);
+    }
+    F_min[node] = std::max(0.,mid[node]-fu);
+    if (mid[node]+fu < std::max(F_min[node],F_scm[node])){
+        printf("Range is problematic!\n");
+    }
 }

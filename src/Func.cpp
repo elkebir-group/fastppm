@@ -4,6 +4,9 @@
 
 #include "Func.h"
 
+std::vector<std::pair<real,real> > helper;
+std::vector<real> _d_y0;
+
 real log_eps(real x, real eps, int s_n) {
     if (x < eps) {
         real return_val = log(eps);
