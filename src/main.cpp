@@ -32,7 +32,7 @@ int main(int argc, char ** argv) {
         link_list[u].push_back(v);
     }
 
-    Solver solver(501,100);
+    Solver solver(n+1,K);
     solver.init(var,ref,link_list,r);
 
     FILE* _in = fopen("debug.txt","r");

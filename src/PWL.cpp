@@ -71,7 +71,7 @@ real PWL_open::operator()(real xx) const {
 real PWL_Ropen::operator()(real xx) const {
     int idx = std::lower_bound(x.begin(),x.begin()+k,xx)-x.begin();
     if (idx <=0) return y[0];
-    return y[idx]+(xx-x[idx])*slope[idx-1];
+    return y[idx-1]+(xx-x[idx-1])*slope[idx-1];
 }
 
 bool PWL_close::self_check() const {
