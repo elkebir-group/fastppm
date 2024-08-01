@@ -15,6 +15,7 @@ class Solver {
 public:
     int n_intervals, n, root;
     real dual_0;
+    std::vector<std::pair<real,real> > helper;
     std::vector<Func> funcs;
     std::vector<Primal> primal;
     std::vector<Dual> dual;

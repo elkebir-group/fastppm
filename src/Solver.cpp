@@ -14,6 +14,7 @@ primal(max_n,k),
 dual(max_n,k+1),
 sum(max_n,(max_n+1)*(k+1)),
 states(max_n, (max_n+1)*(k+1)),
+helper((max_n+1)*(k+1)),
 children(max_n),
 children_state(max_n)
 {

@@ -14,7 +14,6 @@ typedef double real;
 const real assert_eps = 1.5e-6;
 #endif
 
-extern std::vector<std::pair<real,real> > helper; // n, k
 const real Compare_eps = 1e-7;
 //const real
 real log_eps(real x,real eps=1e-6,int s_n=3);

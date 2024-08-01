@@ -12,7 +12,6 @@ int main(int argc, char ** argv) {
     K = std::stoi(argv[2]);
     fin >> n;
 
-    helper.resize((n+2)*(K+2));
     var.resize(n);
     ref.resize(n);
     dep.resize(n);
