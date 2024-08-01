@@ -8,14 +8,16 @@
 
 #include "Func.h"
 #include "PWL.h"
+#include "Primal.h"
+#include "Dual.h"
 
 class Solver {
 public:
     int n_intervals, n, root;
     real dual_0;
     std::vector<Func> funcs;
-    std::vector<PWL_close> primal;
-    std::vector<PWL_open> dual;
+    std::vector<Primal> primal;
+    std::vector<Dual> dual;
     std::vector<PWL_Ropen> states;
     std::vector<PWL_Ropen> sum;
 
@@ -33,11 +35,6 @@ public:
 
     real answer();
     real main(real frac=0.75, real obj=1e-6);
-
-    ////////debug purpose only
-    std::vector<real> F_min,F_scm;
-    std::vector<real> step,all_;
-    void my_assertions(std::vector<real> &mid, real fu, int node);
 };
 
 

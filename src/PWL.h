@@ -10,32 +10,11 @@
 
 #include "Func.h"
 
-class PWL_close {// x Bounded on both end. //primal function
-public:
-    PWL_close(int max_k);
-    int k; // n of intervals;
-    std::vector<real> x;
-    std::vector<real> y;
-    std::vector<real> slope;
+class PWL_close;
+typedef PWL_close Primal;
 
-    void update(real begin, real end, int _k, const Func & func);
-    real backtrace(real d, real * debug = NULL);
-    real operator()(real x) const;
-    bool self_check() const;
-};
-
-class PWL_open{//x not bounded. // dual function
-public:
-    PWL_open(int max_k);
-    int k; // n of intervals;
-    std::vector<real> x;
-    std::vector<real> y;
-    std::vector<real> slope;
-
-    void dual_from_primal(const PWL_close & primal);
-    real operator()(real x) const;
-    bool self_check() const;
-};
+class PWL_open;
+typedef PWL_open Dual;
 
 class PWL_Ropen{// x bounded on left side // left is always 0. i.e. x[0]=0 // state function
 public:
@@ -45,12 +24,15 @@ public:
     std::vector<real> y;
     std::vector<real> slope;
 
-    void base_case(const PWL_open & dual);
+    void base_case(const Dual & dual);
     void sum(const std::vector<PWL_Ropen *> & to_sum, std::vector<std::pair<real, real> > & helper);
-    void optimize_with(const PWL_Ropen & sum_func, const PWL_open & dual);
-    real backtrace(const PWL_open &dual, real val, real * debug = NULL, bool flag=false) const ;
+    void optimize_with(const PWL_Ropen & sum_func, const Dual & dual);
+    real backtrace(const Dual &dual, real val) const ;
+
+#ifdef _DEBUG
     real operator()(real x) const;
     bool self_check() const;
+#endif
 };
 
 //
