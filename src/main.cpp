@@ -3,7 +3,6 @@
 
 #include "Solver.h"
 
-
 int main(int argc, char ** argv) {
     std::vector<int> var, ref, dep;
     std::vector<std::list<int> > link_list;
@@ -35,13 +34,7 @@ int main(int argc, char ** argv) {
     Solver solver(n+1,K);
     solver.init(var,ref,link_list,r);
 
-    FILE* _in = fopen("debug.txt","r");
-    _d_y0.resize(n);
-    for (int i = 0; i < n; i++){
-        fscanf(_in,"%d : %lf\n", &i, &_d_y0[i]);
-    }
-
-    real answer = solver.main(0.6,1e-6);
+    real answer = solver.main(0.8,1e-6);
 
     printf("%.12lf\n",answer);
 

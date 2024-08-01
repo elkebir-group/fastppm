@@ -4,7 +4,6 @@
 
 #include "Solver.h"
 #include <stack>
-#include <cassert>
 
 Solver::Solver(int max_n, int k):
 F(max_n),
