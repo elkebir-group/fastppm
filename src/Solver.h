@@ -26,6 +26,9 @@ public:
     std::vector<real> F;//
     std::vector<std::vector<int> > children;
     std::vector<std::vector<PWL_Ropen*> > children_state;
+
+    std::vector<real> BT_x, BT_y;
+
     Solver(int max_n, int k);
     void init(const std::vector<int> &var, const std::vector<int> &ref,
               const std::vector<std::list<int> > &llist, int root);

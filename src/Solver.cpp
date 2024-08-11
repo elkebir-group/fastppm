@@ -16,7 +16,9 @@ sum(max_n,(max_n+1)*(k+1)),
 states(max_n, (max_n+1)*(k+1)),
 helper((max_n+1)*(k+1)),
 children(max_n),
-children_state(max_n)
+children_state(max_n),
+BT_x((max_n+1)*(k+1)),
+BT_y((max_n+1)*(k+1))
 {
 }
 
@@ -64,7 +66,7 @@ void Solver::dfs_BT(int node, real value) {
         dual_vars[node] = 0;
     }
     else {
-        dual_vars[node] = sum[node].backtrace(dual[node],value);
+        dual_vars[node] = sum[node].backtrace(dual[node],value,BT_x,BT_y);
     }
     real min_val = primal[node].backtrace(dual_vars[node] - value ), sum = 0;
     for (auto ch: children[node]) {

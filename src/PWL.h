@@ -27,7 +27,7 @@ public:
     void base_case(const Dual & dual);
     void sum(const std::vector<PWL_Ropen *> & to_sum, std::vector<std::pair<real, real> > & helper);
     void optimize_with(const PWL_Ropen & sum_func, const Dual & dual);
-    real backtrace(const Dual &dual, real val) const ;
+    real backtrace(const Dual &dual, real val, std::vector<real> & helper_x, std::vector<real> & helper_y) const ;
 
 #ifdef _DEBUG
     real operator()(real x) const;

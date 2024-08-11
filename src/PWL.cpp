@@ -135,8 +135,8 @@ void PWL_Ropen::optimize_with(const PWL_Ropen &sum_func, const Dual &dual) {
 }
 
 
-real PWL_Ropen::backtrace(const Dual &dual, real val) const {
-    std::vector<real> result_x (k + dual.k + 2), result_y(k + dual.k + 2);
+real PWL_Ropen::backtrace(const Dual &dual, real val, std::vector<real> & result_x, std::vector<real> & result_y) const {
+//    std::vector<real> result_x (k + dual.k + 2), result_y(k + dual.k + 2);
     int sum_idx=0, pwl_idx=0, tot_index=0;
     real _x;
     while (sum_idx < k && pwl_idx < dual.k - 1) {
