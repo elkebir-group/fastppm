@@ -11,11 +11,12 @@ PWL_close::PWL_close(int max_k) :
         slope(max_k) {
 }
 
-void PWL_close::update(real begin, real end, int _k, const Func &func) {
+void PWL_close::update(real begin, real end, int _k, const std::pair<real,real> &func_para,
+                       std::function<real(real,real,real)> & lossFunction) {
     k = _k;
     for (int i = 0; i <= k; i++) {
         x[i] = begin + (end - begin) * i / k;
-        y[i] = func(x[i]);
+        y[i] = lossFunction(func_para.first, func_para.second, x[i]);
     }
     for (int i = 0; i < k; i++) {
         slope[i] = (y[i + 1] - y[i]) / (x[i + 1] - x[i]);

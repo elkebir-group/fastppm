@@ -6,6 +6,7 @@
 #define EFFICIENTLLHESTIMATOR_FUNC_H
 #include <cmath>
 #include <vector>
+#include <functional>
 
 typedef double real;
 
@@ -18,11 +19,8 @@ const real Compare_eps = 1e-7;
 //const real
 real log_eps(real x,real eps=1e-6,int s_n=3);
 
-struct Func {
-    real var, ref;
-    inline real operator()(real x) const {
-        return - var * log_eps(x) - ref * log_eps(1 - x);
-    }
-};
+inline real func_llh(real para_var, real para_ref, real x) {
+    return -para_var * log_eps(x) - para_ref * log_eps(1 - x);
+}
 
 #endif //EFFICIENTLLHESTIMATOR_FUNC_H

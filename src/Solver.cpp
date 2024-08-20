@@ -18,7 +18,8 @@ helper((max_n+1)*(k+1)),
 children(max_n),
 children_state(max_n),
 BT_x((max_n+1)*(k+1)),
-BT_y((max_n+1)*(k+1))
+BT_y((max_n+1)*(k+1)),
+loss_func(func_llh)
 {
 }
 
@@ -40,7 +41,7 @@ void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
 
 void Solver::init_range(std::vector<real> &mid, real fu){
     for (int i = 0; i < n; i++){
-        primal[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,funcs[i]);
+        primal[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,funcs[i], loss_func);
 //        assert(primal[i].self_check());
         dual[i].dual_from_primal(primal[i]);
 //        assert(dual[i].self_check());
@@ -106,4 +107,7 @@ real Solver::main(real frac, real obj) {
         }while(range/n_intervals > obj);
 
     return ans;
+}
+
+Solver::~Solver() {
 }

@@ -11,8 +11,11 @@
 #include "Primal.h"
 #include "Dual.h"
 
+typedef std::pair<real, real> Func;
+
 class Solver {
 public:
+    std::function<real(real,real,real)> loss_func;
     int n_intervals, n, root;
     real dual_0;
     std::vector<std::pair<real,real> > helper;
@@ -36,9 +39,11 @@ public:
 
     void dfs(int node);
     void dfs_BT(int node, real value);
+    void set_function();
 
     real answer();
     real main(real frac=0.75, real obj=1e-6);
+    ~Solver();
 };
 
 

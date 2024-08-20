@@ -12,13 +12,16 @@
 class PWL_close {// x Bounded on both end. //primal function
 public:
     PWL_close(int max_k);
+
     int k; // n of intervals;
     std::vector<real> x;
     std::vector<real> y;
     std::vector<real> slope;
 
-    void update(real begin, real end, int _k, const Func & func);
-    real backtrace(real d, real * debug = NULL);
+    void update(real begin, real end, int _k, const std::pair<real, real> &func_para,
+                std::function<real(real, real, real)> &lossFunction);
+
+    real backtrace(real d, real *debug = NULL);
 
 #ifdef _DEBUG
     real operator()(real x) const;
