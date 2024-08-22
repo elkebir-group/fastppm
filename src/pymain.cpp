@@ -64,7 +64,7 @@ void pymain::set_target(real target) {
     Target_F_eps = target;
 }
 
-PYBIND11_MODULE(test, m) {
+PYBIND11_MODULE(fPPML, m) {
     py::class_<pymain>(m, "CVXTree")
             .def(py::init<int, int, real, real>(), py::arg("max_n"), py::arg("max_n_interval") = 10,
                  py::arg("F_eps") = 1e-4, py::arg("base") = 0.8)
