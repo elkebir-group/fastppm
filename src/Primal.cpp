@@ -3,6 +3,7 @@
 //
 
 #include "Primal.h"
+#include <algorithm>
 
 PWL_close::PWL_close(int max_k) :
         k (0),

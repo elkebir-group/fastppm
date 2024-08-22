@@ -8,6 +8,8 @@
 #include "Primal.h"
 #include "Dual.h"
 #include <queue>
+#include <algorithm>
+#include <cstdio>
 
 typedef std::pair<PWL_Ropen*, int> priority_queue_helper;
 inline bool operator < (const priority_queue_helper & a, const priority_queue_helper & b){
