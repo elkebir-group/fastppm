@@ -25,12 +25,15 @@ Successful compilation will result in one python library and one executable:
 ## Usage
 
 ```
-import fastPPML
+import fastppm
 
-a = fastPPML.CVXTree(20)
+a = fastppm.CVXTree(7)
 
 tree = [[1,2],[3,4],[5,6],[],[],[],[]]
 root = 0
+
+var = [9,4,4,1,2,2,1]
+ref = [1,6,6,9,8,8,8]
 
 ll = a.optimize(tree, root, var, ref)
 
