@@ -39,7 +39,6 @@ public:
 
     void dfs(int node);
     void dfs_BT(int node, real value);
-    void set_function();
 
     real answer();
     real main(real frac=0.75, real obj=1e-6);

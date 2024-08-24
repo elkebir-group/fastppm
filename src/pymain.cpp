@@ -13,7 +13,7 @@ public:
     Solver solver;
 
     double Target_F_eps, Frac;
-    int N_intervals, init_n_intervals;
+    int init_n_intervals;
 
     pymain(int max_n, int k=10, real target_F_eps=1e-4, real frac=0.8);
 
@@ -32,7 +32,6 @@ namespace py=pybind11;
 
 pymain::pymain(int max_n, int k, real target_F_eps, real frac):
         Target_F_eps(target_F_eps),
-        N_intervals(k),
         init_n_intervals(k),
         Frac(frac),
         solver(max_n,k)
@@ -52,7 +51,6 @@ const std::vector<real> &pymain::F() const {
 
 void pymain::set_n_intervals(int n_intervals) {
     assert(n_intervals <= init_n_intervals);
-    N_intervals = n_intervals;
     solver.n_intervals = n_intervals;
 }
 
@@ -73,5 +71,5 @@ PYBIND11_MODULE(fastppm, m) {
             .def("F", &pymain::F)
             .def("set_n_intervals", &pymain::set_n_intervals)
             .def("set_base", &pymain::set_frac)
-            .def("set_F_eps",&pymain::set_frac);
+            .def("set_F_eps",&pymain::set_target);
 }
