@@ -24,6 +24,8 @@ Successful compilation will result in one python library and one executable:
 
 ## Usage
 
+### Usage of Python
+
 ```
 import fastppm
 
@@ -40,3 +42,25 @@ ll = a.optimize(tree, root, var, ref)
 print("Negative log likelihood:", ll)
 print("Frequency matrix:", a.F())
 ```
+
+### Usage of Executable (Not suggested if you have multiple instances/samples)
+
+The format of input as follows:
+
+The first line contains a single number $n$ indicates the number of nodes/mutations/mutation clusters in the tree.
+
+The second line contains $n$ numbers seperated by spaces which are the numbers of __variant__ reads of each mutation.
+
+The third line contains $n$ numbers seperated by spaces which are the numbers of __total__ reads of each mutation.
+
+The forth line contains a single number indicates the root of the tree.
+
+The last $n-1$ lines contains the arcs of the trees, each line contains two numbers, seperated by space(s).
+The first is the parent and the second is the children.
+
+The same example of the above python code is included in `example.txt`.
+
+You can run the test excutable as follows:
+
+```fastppm-test [FILE] [K]```, where `[FILE]` is the input file, and `[K]` is the number of pieces.
+An example of execution is `fastppm-test example.txt 10`

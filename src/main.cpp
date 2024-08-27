@@ -33,7 +33,7 @@ int main(int argc, char ** argv) {
     Solver solver(n+1,K);
     solver.init(var,ref,link_list,r);
 
-    real answer = solver.main(0.8,1e-6);
+    real answer = solver.main(0.8,1e-4);
 
     printf("%.12lf\n",answer);
 
