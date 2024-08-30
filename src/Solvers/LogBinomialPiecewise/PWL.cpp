@@ -10,6 +10,7 @@
 #include <queue>
 #include <algorithm>
 #include <cstdio>
+#include <stdexcept>
 
 namespace LogBinomialPiecewiseLinearSolver {
 
@@ -82,7 +83,7 @@ void PWL_Ropen::sum(const std::vector<PWL_Ropen *> & to_sum, std::vector<std::pa
 
 void PWL_Ropen::optimize_with(const PWL_Ropen &sum_func, const Dual &dual) {
     if (dual.slope[dual.k-1] + sum_func.slope[sum_func.k-1] > Compare_eps){ // note 1;
-        printf("ERROR, oh no!\n");
+        throw std::runtime_error("Dual slope is increasing, PANIC!"); 
     }
     if (dual.slope[0] + sum_func.slope[0] <= Compare_eps ){ //note 2; decreasing always, easy
         base_case(dual);

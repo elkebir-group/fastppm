@@ -101,7 +101,7 @@ real Solver::main(real frac, real obj) {
 
             ans = answer();
 
-            printf("iteration: obj=%.12lf\n",ans);
+            //printf("iteration: obj=%.12lf\n",ans); 
 
             dfs_BT(root, dual_0);
 
