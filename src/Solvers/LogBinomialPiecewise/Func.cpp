@@ -4,6 +4,8 @@
 
 #include "Func.h"
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 real log_eps(real x, real eps, int s_n) {
     if (x < eps) {
         real return_val = log(eps);
@@ -16,3 +18,8 @@ real log_eps(real x, real eps, int s_n) {
     return log(x);
 }
 
+real func_llh(real para_var, real para_ref, real x) {
+    return -para_var * log_eps(x) - para_ref * log_eps(1 - x);
+}
+
+};

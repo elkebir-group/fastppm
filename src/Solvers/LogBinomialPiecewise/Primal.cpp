@@ -5,6 +5,8 @@
 #include "Primal.h"
 #include <algorithm>
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 PWL_close::PWL_close(int max_k) :
         k (0),
         x(max_k + 1),
@@ -55,3 +57,5 @@ bool PWL_close::self_check() const {
 }
 
 #endif
+
+};

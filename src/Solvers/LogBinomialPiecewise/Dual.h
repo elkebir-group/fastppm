@@ -8,6 +8,7 @@
 #include "Func.h"
 #include <vector>
 
+namespace LogBinomialPiecewiseLinearSolver {
 
 class PWL_close;
 typedef PWL_close Primal;
@@ -29,5 +30,7 @@ public:
 };
 
 typedef PWL_open Dual;
+
+};
 
 #endif //EFFICIENTLLHESTIMATOR_DUAL_H

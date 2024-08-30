@@ -5,7 +5,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/fmt/ostr.h>
 
-#include "Solver.h"
+#include "Solvers/LogBinomialPiecewise/Solver.h"
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0

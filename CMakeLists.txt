@@ -15,7 +15,6 @@ project(fastppm VERSION 1.0)
 
 add_subdirectory(src/)
 
-target_include_directories(fastppm-cli PUBLIC "${fastppm_SOURCE_DIR}/include")
 target_include_directories(fastppm-cli PUBLIC "${fastppm_SOURCE_DIR}/third-party/csv-parser/include")
 
 # turn off JSON library tests
@@ -29,12 +28,13 @@ add_subdirectory(extern/argparse)
 add_subdirectory(extern/json)
 add_subdirectory(extern/pybind11)
 
-pybind11_add_module(
-    fastppm MODULE 
-    src/pymain.cpp 
-    src/Solver.cpp src/Solver.h 
-    src/PWL.cpp src/PWL.h 
-    src/Func.h src/Func.cpp 
-    src/Primal.cpp src/Primal.h 
-    src/Dual.cpp src/Dual.h
-)
+# TODO: fix at end
+# pybind11_add_module(
+# fastppm MODULE 
+# src/pymain.cpp 
+# src/Solver.cpp src/Solver.h 
+# src/PWL.cpp src/PWL.h 
+# src/Func.h src/Func.cpp 
+# src/Primal.cpp src/Primal.h 
+# src/Dual.cpp src/Dual.h
+# )

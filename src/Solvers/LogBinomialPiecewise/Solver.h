@@ -4,12 +4,15 @@
 
 #ifndef EFFICIENTLLHESTIMATOR_SOLVER_H
 #define EFFICIENTLLHESTIMATOR_SOLVER_H
+
 #include <list>
 
 #include "Func.h"
 #include "PWL.h"
 #include "Primal.h"
 #include "Dual.h"
+
+namespace LogBinomialPiecewiseLinearSolver {
 
 typedef std::pair<real, real> Func;
 
@@ -45,5 +48,5 @@ public:
     ~Solver();
 };
 
-
+};
 #endif //EFFICIENTLLHESTIMATOR_SOLVER_H

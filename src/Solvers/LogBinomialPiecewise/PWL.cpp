@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <cstdio>
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 typedef std::pair<PWL_Ropen*, int> priority_queue_helper;
 inline bool operator < (const priority_queue_helper & a, const priority_queue_helper & b){
     return a.first->x[a.second] > b.first->x[b.second];
@@ -211,3 +213,5 @@ bool PWL_Ropen::self_check() const {
 }
 
 #endif
+
+};

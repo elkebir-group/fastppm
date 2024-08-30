@@ -5,6 +5,7 @@
 #include "Dual.h"
 #include "Primal.h"
 
+namespace LogBinomialPiecewiseLinearSolver {
 
 PWL_open::PWL_open(int max_k) :
         k (0),
@@ -45,3 +46,5 @@ bool PWL_open::self_check() const {
 }
 
 #endif
+
+};

@@ -10,6 +10,8 @@
 
 #include "Func.h"
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 class PWL_close;
 typedef PWL_close Primal;
 
@@ -57,5 +59,7 @@ public:
 //
 //    real bt_f(real d_dual);
 //};
+
+};
 
 #endif //EFFICIENTLLHESTIMATOR_PWL_H

@@ -9,6 +9,8 @@
 
 #include <vector>
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 class PWL_close {// x Bounded on both end. //primal function
 public:
     PWL_close(int max_k);
@@ -30,5 +32,6 @@ public:
 };
 
 typedef PWL_close Primal;
+};
 
 #endif //EFFICIENTLLHESTIMATOR_PRIMAL_H

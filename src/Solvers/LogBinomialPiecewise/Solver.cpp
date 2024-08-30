@@ -8,6 +8,8 @@
 #include <functional>
 #include <algorithm>
 
+namespace LogBinomialPiecewiseLinearSolver {
+
 Solver::Solver(int max_n, int k):
 F(max_n),
 dual_vars(max_n),
@@ -114,3 +116,5 @@ real Solver::main(real frac, real obj) {
 
 Solver::~Solver() {
 }
+
+};
