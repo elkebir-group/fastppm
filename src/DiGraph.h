@@ -163,7 +163,7 @@ std::string to_adjacency_list(const digraph<T>& G, const std::unordered_map<int,
  * Parses an adjacency list into a directed graph object, 
  * where the vertices are read in as integers.
  */
-std::pair<digraph<int>, std::unordered_map<int, int>> parse_adjacency_list(const std::string& filename) {
+inline std::pair<digraph<int>, std::unordered_map<int, int>> parse_adjacency_list(const std::string& filename) {
     digraph<int> g;
 
     std::ifstream file(filename);

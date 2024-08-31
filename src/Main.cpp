@@ -11,6 +11,7 @@
 
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
+#include "Solvers/L2/Solver.h"
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
@@ -21,6 +22,23 @@ struct SolverResult {
     std::optional<std::vector<std::vector<double>>> usage_matrix;
     std::optional<std::vector<std::vector<double>>> frequency_matrix;
 };
+
+SolverResult l2_solve(
+    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root
+) {
+    L2Solver::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    solver.solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    return {solver.objective, runtime, {}, {}};
+}
 
 /* 
  * Solves the optimization problem using the binomial loss function
@@ -57,6 +75,8 @@ SolverResult log_binomial_solve(
     }
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    
+    // TODO: extract usage matrix from frequency_matrix
 
     return {runtime, objective, {}, frequency_matrix};
 }
@@ -197,6 +217,8 @@ int main(int argc, char ** argv) {
     SolverResult result;
     if (program.get<std::string>("-l") == "binomial") {
         result = log_binomial_solve(variant_matrix, total_matrix, clone_tree, root, 10);
+    } else if (program.get<std::string>("-l") == "l2") {
+        result = l2_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
     } else {
         error_logger->error("The loss function specified is not supported.");
         std::exit(1);

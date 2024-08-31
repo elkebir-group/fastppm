@@ -5,6 +5,7 @@ add_executable(fastppm-cli
     Solvers/LogBinomialPiecewise/Solver.cpp
     Solvers/LogBinomialPiecewise/PWL.cpp
     Solvers/LogBinomialPiecewise/Func.cpp
+    Solvers/L2/Solver.cpp
 )
 
 
