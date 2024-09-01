@@ -12,11 +12,11 @@
  * abstract tree structured dual dynamic programming algorithm.
  * 
  * Requires the following methods to be defined for Representation:
- * - Representation::Representation(float variant_reads, float total_reads) 
+ * - Representation::Representation(double variant_reads, double total_reads) 
  *      Computes J_i(.) for a leaf vertex.
  * - Representation Representation::operator+(const Representation& other)
  *      Adds J_i(.) and J_k(.) for two children vertices.
- * - Representation Representation::update_representation(float variant_reads, float total_reads)
+ * - Representation Representation::update_representation(double variant_reads, double total_reads)
  *      Computes J_i(.) <- min_{h_i(var, total) + J_i(.)} for a vertex with variant_reads 
  *      and total_reads.
  */
@@ -24,8 +24,8 @@ template <typename Representation>
 std::unordered_map<int, std::vector<Representation>> forward_solve(
     digraph<int>& clone_tree, 
     const std::unordered_map<int, int>& vertex_map, 
-    const std::vector<std::vector<float>>& variant_reads, 
-    const std::vector<std::vector<float>>& total_reads, 
+    const std::vector<std::vector<double>>& variant_reads, 
+    const std::vector<std::vector<double>>& total_reads, 
     int root
 ) {
     size_t nrows = variant_reads.size();

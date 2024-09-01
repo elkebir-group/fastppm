@@ -23,7 +23,7 @@ public:
 
     // leaf constructor
     PiecewiseQuadraticF(int variant_reads, int total_reads) {
-        float frequency = (float)variant_reads / (float)total_reads;
+        double frequency = (double)variant_reads / (double)total_reads;
         breakpoints.push_back(2.0 * frequency);
         slopes.push_back(0.0);
         f0 = 0.0;
@@ -141,14 +141,14 @@ public:
     // J_i(\gamma) = max_{x \geq 0}(h_i(x - \gamma) + F(x))
     // really, this is the meat of the algorithm
     PiecewiseQuadraticF update_representation(int variant_reads, int total_reads) const {
-        float frequency = (float) variant_reads / (float) total_reads;
+        double frequency = (double) variant_reads / (double) total_reads;
 
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
 
         // find first breakpoint x
         size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
-        float x = 0.0;
+        double x = 0.0;
         if (l == 0) {
             x = frequency - c0;
         } else {
@@ -203,6 +203,31 @@ public:
         result.slopes = new_slopes;
 
         return result;
+    }
+
+
+    double compute_argmin(double gamma, int variant_reads, int total_reads) {
+        double frequency = (double) variant_reads / (double) total_reads;
+
+        // compute intercepts of the pieces of the derivative, using continuity
+        std::vector<double> cs = get_derivative_intercepts();
+
+        // find first breakpoint x
+        std::vector<double> zs(breakpoints.size());
+        for (size_t i = 0; i < breakpoints.size(); i++) {
+            zs[i] = 2.0 * (frequency + 0.5 * breakpoints[i] - cs[i]);
+        }
+
+        size_t l = std::lower_bound(zs.begin(), zs.end(), gamma) - zs.begin();
+        double alpha_star = 0.0;
+
+        if (l == 0) {
+            alpha_star = (frequency - c0) / (m0 - 0.5);
+        } else {
+            alpha_star = (frequency + 0.5 * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - 0.5) + breakpoints[l-1];
+        }
+
+        return std::max(0.0, alpha_star);
     }
 };
 };

@@ -37,7 +37,7 @@ SolverResult l2_solve(
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    return {solver.objective, runtime, {}, {}};
+    return {runtime, solver.objective, {}, solver.frequencies};
 }
 
 /* 
