@@ -238,7 +238,7 @@ int main(int argc, char ** argv) {
     }
 
     std::ofstream output_file(program.get<std::string>("-o"));
-    output_file << output.dump(4);
+    output_file << output.dump();
 
     return 0;
 }
