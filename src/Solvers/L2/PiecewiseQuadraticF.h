@@ -221,9 +221,9 @@ public:
         double alpha_star = 0.0;
 
         if (l == 0) {
-            alpha_star = (frequency - c0) / (m0 - 0.5);
+            alpha_star = (frequency - 0.5*gamma - c0) / (m0 - 0.5);
         } else {
-            alpha_star = (frequency + 0.5 * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - 0.5) + breakpoints[l-1];
+            alpha_star = (frequency - 0.5*gamma + 0.5 * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - 0.5) + breakpoints[l-1];
         }
 
         return std::max(0.0, alpha_star);

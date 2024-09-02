@@ -22,10 +22,8 @@ namespace L2Solver {
             }
 
             if (i == 0) {
-                // (c0 - 1) + m0 * alpha_0 = 0
                 alpha_0 = (1.0 - f.c0) / f.m0;
             } else {
-                // (c_i - 1) + m_i * (alpha_0 - b_i) = 0
                 alpha_0 = (1.0 - cs[i - 1]) / f.slopes[i - 1] + f.breakpoints[i - 1];
             }
 
@@ -39,27 +37,27 @@ namespace L2Solver {
 
     void Solver::backtrack(double alpha_0, int j) {
         std::stack<int> stack;
-        stack.push(root);
+        stack.push(root); // root is in column coordinates
 
         while(!stack.empty()) {
-            int i = stack.top();
+            int i = stack.top(); // i is in column coordinates
             stack.pop();
 
-            auto children = clone_tree.successors(i);
+            auto children = clone_tree.successors(vertex_map.at(i));
 
             PiecewiseQuadraticF g;
-            for (auto k : clone_tree.successors(i)) {
-                PiecewiseQuadraticF f = fs[vertex_map.at(k)][j];
+            for (auto k : children) { // k is in vertex coordinates
+                PiecewiseQuadraticF f = fs[k][j];
                 g = g + f;
-                stack.push(k);
+                stack.push(clone_tree[k].data); // push k in column coordinates
             }
 
             double gamma; 
             if (i == root) {
                 gamma = alpha_0;
             } else {
-                int p = clone_tree.predecessors(i)[0];
-                gamma = alphas[j][p];
+                int p = clone_tree.predecessors(vertex_map.at(i))[0]; // convert i to vertex coordinates, then get the parent
+                gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
             }
 
             double freq = variant_reads[j][i] / total_reads[j][i];
