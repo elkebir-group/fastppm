@@ -16,6 +16,37 @@
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
 
+/* 
+ * Computes the usage matrix from the frequency matrix
+ * by solving f^T = u^TB as u^T = f^TB^{-1} where 
+ * B is the clonal matrix  corresponding to T.
+ */
+std::vector<std::vector<double>> compute_usage_matrix(
+    const digraph<int>& clone_tree,
+    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<std::vector<double>>& frequency_matrix
+) {
+    std::vector<std::vector<double>> usage_matrix = frequency_matrix;
+    for (size_t j = 0; j < frequency_matrix.size(); j++) {
+        for (size_t i = 0; i < frequency_matrix[i].size(); i++) {
+            for (auto child : clone_tree.successors(vertex_map.at(i))) {
+                size_t l = clone_tree[child].data;
+                usage_matrix[j][i] -= frequency_matrix[j][l];
+            }
+        }
+    }
+    return usage_matrix;
+}
+
+/* 
+ * Represents the solver output.
+ * 
+ * Fields:
+ *  - runtime: The time taken to solve the optimization problem in milliseconds.
+ *  - objective: The value of the objective function after optimization.
+ *  - usage_matrix: The usage matrix after optimization. This is an optional field.
+ *  - frequency_matrix: The frequency matrix after optimization. This is an optional field.
+ */
 struct SolverResult {
     double runtime;
     double objective;
@@ -23,6 +54,9 @@ struct SolverResult {
     std::optional<std::vector<std::vector<double>>> frequency_matrix;
 };
 
+/* 
+ * Solves the optimization problem using the L2 loss function.
+ */
 SolverResult l2_solve(
     const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
@@ -37,7 +71,8 @@ SolverResult l2_solve(
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    return {runtime, solver.objective, {}, solver.frequencies};
+    auto usage_matrix = compute_usage_matrix(clone_tree, vertex_map, solver.frequencies);
+    return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
 
 /* 
@@ -45,6 +80,7 @@ SolverResult l2_solve(
  * with Yuanyuan's progressive piecewise linear solver.
  */
 SolverResult log_binomial_solve(
+    const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
     const digraph<int>& clone_tree,
@@ -76,9 +112,8 @@ SolverResult log_binomial_solve(
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     
-    // TODO: extract usage matrix from frequency_matrix
-
-    return {runtime, objective, {}, frequency_matrix};
+    auto usage_matrix = compute_usage_matrix(clone_tree, vertex_map, frequency_matrix);
+    return {runtime, objective, usage_matrix, frequency_matrix};
 }
 
 /* 
@@ -216,7 +251,7 @@ int main(int argc, char ** argv) {
 
     SolverResult result;
     if (program.get<std::string>("-l") == "binomial") {
-        result = log_binomial_solve(variant_matrix, total_matrix, clone_tree, root, 10);
+        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, 10);
     } else if (program.get<std::string>("-l") == "l2") {
         result = l2_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
     } else {
