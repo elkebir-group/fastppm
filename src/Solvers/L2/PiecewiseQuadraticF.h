@@ -22,8 +22,7 @@ public:
     }
 
     // leaf constructor
-    PiecewiseQuadraticF(double variant_reads, double total_reads) {
-        double frequency = total_reads != 0.0 ? variant_reads / total_reads : 0.0;
+    PiecewiseQuadraticF(double frequency) {
         breakpoints.push_back(2.0 * frequency);
         slopes.push_back(0.0);
         f0 = 0.0;
@@ -140,9 +139,7 @@ public:
     // when F = \sum{j \in \delta(i)}J_j, this updates F to be 
     // J_i(\gamma) = max_{x \geq 0}(h_i(x - \gamma) + F(x))
     // really, this is the meat of the algorithm
-    PiecewiseQuadraticF update_representation(double variant_reads, double total_reads) const {
-        double frequency = total_reads != 0.0 ? variant_reads / total_reads : 0.0;
-
+    PiecewiseQuadraticF update_representation(double frequency) const {
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
 
@@ -205,9 +202,7 @@ public:
         return result;
     }
 
-    double compute_argmin(double gamma, double variant_reads, double total_reads) {
-        double frequency = total_reads != 0.0 ? variant_reads / total_reads : 0.0;
-
+    double compute_argmin(double gamma, double frequency) {
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
 

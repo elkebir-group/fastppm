@@ -12,24 +12,23 @@
  * abstract tree structured dual dynamic programming algorithm.
  * 
  * Requires the following methods to be defined for Representation:
- * - Representation::Representation(double variant_reads, double total_reads) 
+ * - Representation::Representation(double frequency) 
  *      Computes J_i(.) for a leaf vertex.
  * - Representation Representation::operator+(const Representation& other)
  *      Adds J_i(.) and J_k(.) for two children vertices.
- * - Representation Representation::update_representation(double variant_reads, double total_reads)
- *      Computes J_i(.) <- min_{h_i(var, total) + J_i(.)} for a vertex with variant_reads 
- *      and total_reads.
+ * - Representation Representation::update_representation(double frequency)
+ *      Computes J_i(.) <- min_{h_i(var, total) + J_i(.)} for 
+ *      a vertex with a given frequency. 
  */
 template <typename Representation>
 std::unordered_map<int, std::vector<Representation>> forward_solve(
     digraph<int>& clone_tree, 
     const std::unordered_map<int, int>& vertex_map, 
-    const std::vector<std::vector<double>>& variant_reads, 
-    const std::vector<std::vector<double>>& total_reads, 
+    const std::vector<std::vector<double>>& frequency_matrix, 
     int root
 ) {
-    size_t nrows = variant_reads.size();
-    size_t ncols = variant_reads[0].size();
+    size_t nrows = frequency_matrix.size();
+    size_t ncols = frequency_matrix[0].size();
 
     // stores the representations for each vertex and sample
     std::unordered_map<int, std::vector<Representation>> fs;
@@ -50,7 +49,7 @@ std::unordered_map<int, std::vector<Representation>> forward_solve(
         // If leaf, compute Representation and return.
         if (clone_tree.out_degree(vertex_map.at(i)) == 0) {
             for (size_t j = 0; j < nrows; ++j) {
-                fs[vertex_map.at(i)][j] = Representation(variant_reads[j][i], total_reads[j][i]);
+                fs[vertex_map.at(i)][j] = Representation(frequency_matrix[j][i]);
             }
 
             visited[vertex_map.at(i)] = true;
@@ -79,7 +78,7 @@ std::unordered_map<int, std::vector<Representation>> forward_solve(
                 g = g + f; 
             }
 
-            fs[vertex_map.at(i)][j] = g.update_representation(variant_reads[j][i], total_reads[j][i]);
+            fs[vertex_map.at(i)][j] = g.update_representation(frequency_matrix[j][i]);
         }
 
         visited[vertex_map.at(i)] = true;

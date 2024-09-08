@@ -13,8 +13,7 @@ namespace L2Solver {
         private:
             digraph<int> clone_tree;
             std::unordered_map<int, int> vertex_map;
-            std::vector<std::vector<double>> variant_reads;
-            std::vector<std::vector<double>> total_reads;
+            std::vector<std::vector<double>> frequency_matrix;
             int root;
         
             std::unordered_map<int, std::vector<PiecewiseQuadraticF>> fs;
@@ -30,23 +29,17 @@ namespace L2Solver {
             Solver(
                 digraph<int> clone_tree, 
                 std::unordered_map<int, int> vertex_map, 
-                std::vector<std::vector<int>> variant_reads, 
-                std::vector<std::vector<int>> total_reads, 
+                std::vector<std::vector<double>> frequency_matrix, 
                 int root
             ) : clone_tree(clone_tree), vertex_map(vertex_map), root(root) {
-                this->variant_reads.reserve(variant_reads.size());
-                for (size_t i = 0; i < variant_reads.size(); i++) {
-                    this->variant_reads.push_back(std::vector<double>(variant_reads[i].begin(), variant_reads[i].end()));
+                this->frequency_matrix.reserve(frequency_matrix.size());
+                for (size_t i = 0; i < frequency_matrix.size(); i++) {
+                    this->frequency_matrix.push_back(std::vector<double>(frequency_matrix[i].begin(), frequency_matrix[i].end()));
                 }
 
-                this->total_reads.reserve(total_reads.size());
-                for (size_t i = 0; i < total_reads.size(); i++) {
-                    this->total_reads.push_back(std::vector<double>(total_reads[i].begin(), total_reads[i].end()));
-                }
-
-                for (size_t i = 0; i < total_reads.size(); i++) {
-                    this->alphas.push_back(std::vector<double>(total_reads[i].size()));
-                    this->frequencies.push_back(std::vector<double>(total_reads[i].size()));
+                for (size_t i = 0; i < frequency_matrix.size(); i++) {
+                    this->alphas.push_back(std::vector<double>(frequency_matrix[i].size()));
+                    this->frequencies.push_back(std::vector<double>(frequency_matrix[i].size()));
                 }
             }
 

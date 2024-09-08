@@ -6,8 +6,9 @@
 
 namespace L2Solver {
     void Solver::solve() {
-        size_t nrows = variant_reads.size();
-        fs = forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, variant_reads, total_reads, root);
+        size_t nrows = frequency_matrix.size();
+
+        fs = forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, root);
 
         double obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -60,12 +61,12 @@ namespace L2Solver {
                 gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
             }
 
-            double freq = variant_reads[j][i] / total_reads[j][i];
+            double freq = frequency_matrix[j][i];
             double alpha;
             if (children.size() == 0) {
                 alpha = std::max(0.0, gamma - 2.0 * freq);
             } else {
-                alpha = g.compute_argmin(gamma, variant_reads[j][i], total_reads[j][i]);
+                alpha = g.compute_argmin(gamma, freq);
             }
 
             alphas[j][i] = alpha;

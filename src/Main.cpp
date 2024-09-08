@@ -64,7 +64,17 @@ SolverResult l2_solve(
     const digraph<int>& clone_tree,
     size_t root
 ) {
-    L2Solver::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
+    std::vector<std::vector<double>> frequency_matrix;
+    for (size_t i = 0; i < variant_matrix.size(); i++) {
+        std::vector<double> frequencies;
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            double freq = total_matrix[i][j] == 0 ? 0 : static_cast<double>(variant_matrix[i][j]) / total_matrix[i][j];
+            frequencies.push_back(freq);
+        }
+        frequency_matrix.push_back(frequencies);
+    }
+
+    L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, root);
 
     auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
@@ -73,6 +83,15 @@ SolverResult l2_solve(
 
     auto usage_matrix = compute_usage_matrix(clone_tree, vertex_map, solver.frequencies);
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
+}
+SolverResult log_binomial_admm_solve(
+    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root
+) {
+
 }
 
 /* 
