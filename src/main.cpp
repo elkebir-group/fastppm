@@ -30,10 +30,11 @@ int main(int argc, char ** argv) {
         link_list[u].push_back(v);
     }
 
-    Solver solver(n+1,K);
+    Solver solver(K);
+
     solver.init(var,ref,link_list,r);
 
-    real answer = solver.main(0.8,1e-4);
+    real answer = solver.main(0.6,1e5);
 
     printf("%.12lf\n",answer);
 
@@ -41,7 +42,13 @@ int main(int argc, char ** argv) {
         printf("%d : %.12lf\n",i, solver.F[i]);
     }
 
-    double obj_recal = 0;
-    printf("%.12lf\n", obj_recal);
+    printf("move 5 to 0\n");
+    answer = solver.move(5,0);
+    printf("%.12lf\n",answer);
+
+    for (int i = 0; i < n; i++){
+        printf("%d : %.12lf\n",i, solver.F[i]);
+    }
+
     return 0;
 }
