@@ -9,34 +9,14 @@
 #include <spdlog/fmt/ostr.h>
 #include <nlohmann/json.hpp>
 
+#include "CloneTree.h"
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
 #include "Solvers/L2/Solver.h"
+#include "Solvers/LogBinomialADMM/Solver.h"
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
-
-/* 
- * Computes the usage matrix from the frequency matrix
- * by solving f^T = u^TB as u^T = f^TB^{-1} where 
- * B is the clonal matrix  corresponding to T.
- */
-std::vector<std::vector<double>> compute_usage_matrix(
-    const digraph<int>& clone_tree,
-    const std::unordered_map<int, int>& vertex_map,
-    const std::vector<std::vector<double>>& frequency_matrix
-) {
-    std::vector<std::vector<double>> usage_matrix = frequency_matrix;
-    for (size_t j = 0; j < frequency_matrix.size(); j++) {
-        for (size_t i = 0; i < frequency_matrix[i].size(); i++) {
-            for (auto child : clone_tree.successors(vertex_map.at(i))) {
-                size_t l = clone_tree[child].data;
-                usage_matrix[j][i] -= frequency_matrix[j][l];
-            }
-        }
-    }
-    return usage_matrix;
-}
 
 /* 
  * Represents the solver output.
@@ -81,7 +61,7 @@ SolverResult l2_solve(
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    auto usage_matrix = compute_usage_matrix(clone_tree, vertex_map, solver.frequencies);
+    auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
 SolverResult log_binomial_admm_solve(
@@ -91,7 +71,14 @@ SolverResult log_binomial_admm_solve(
     const digraph<int>& clone_tree,
     size_t root
 ) {
+    LogBinomialADMM::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
 
+    auto start = std::chrono::high_resolution_clock::now();
+    solver.solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    return {runtime, solver.objective, solver.usages, solver.frequencies};
 }
 
 /* 
@@ -131,7 +118,7 @@ SolverResult log_binomial_solve(
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     
-    auto usage_matrix = compute_usage_matrix(clone_tree, vertex_map, frequency_matrix);
+    auto usage_matrix = left_inverse(clone_tree, vertex_map, frequency_matrix);
     return {runtime, objective, usage_matrix, frequency_matrix};
 }
 
@@ -229,7 +216,7 @@ int main(int argc, char ** argv) {
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
         .default_value("binomial")
-        .choices("l1", "l2", "binomial");
+        .choices("l1", "l2", "binomial", "binomial_admm");
 
     try {
         program.parse_args(argc, argv);
@@ -273,6 +260,8 @@ int main(int argc, char ** argv) {
         result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, 10);
     } else if (program.get<std::string>("-l") == "l2") {
         result = l2_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
+    } else if (program.get<std::string>("-l") == "binomial_admm") {
+        result = log_binomial_admm_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
     } else {
         error_logger->error("The loss function specified is not supported.");
         std::exit(1);
