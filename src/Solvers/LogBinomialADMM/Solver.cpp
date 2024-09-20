@@ -137,8 +137,6 @@ namespace LogBinomialADMM {
                     inc = variant_reads[i][j] * log(frequency_matrix[i][j]) + (total_reads[i][j] - variant_reads[i][j]) * log(1 - frequency_matrix[i][j]);
                 }
 
-                // std::cout << "inc: " << inc << std::endl;
-                // std::cout << variant_reads[i][j] << " " << total_reads[i][j] << " " << frequency_matrix[i][j] << std::endl;
                 obj += inc;
             }
         }
