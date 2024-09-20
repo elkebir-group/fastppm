@@ -13,7 +13,6 @@
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
 #include "Solvers/L2/Solver.h"
-#include "Solvers/LogBinomialADMM/Solver.h"
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
@@ -65,23 +64,6 @@ SolverResult l2_solve(
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
 
-SolverResult log_binomial_admm_solve(
-    const std::unordered_map<int, int>& vertex_map,
-    const std::vector<std::vector<int>>& variant_matrix,
-    const std::vector<std::vector<int>>& total_matrix,
-    const digraph<int>& clone_tree,
-    size_t root
-) {
-    LogBinomialADMM::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
-
-    auto start = std::chrono::high_resolution_clock::now();
-    solver.solve();
-    auto end = std::chrono::high_resolution_clock::now();
-    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    return {runtime, solver.objective, solver.usages, solver.frequencies};
-}
-
 /* 
  * Solves the optimization problem using the binomial loss function
  * with Yuanyuan's progressive piecewise linear solver.
@@ -113,7 +95,7 @@ SolverResult log_binomial_solve(
 
         LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
-        objective += solver.main(0.75, 1e-6); // TODO: make these parameters configurable
+        objective += solver.main(0.75, 1e-5); // TODO: make these parameters configurable
         
         std::vector<double> frequencies(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
@@ -223,7 +205,7 @@ int main(int argc, char ** argv) {
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
         .default_value("binomial")
-        .choices("l1", "l2", "binomial", "binomial_admm");
+        .choices("l1", "l2", "binomial");
 
     try {
         program.parse_args(argc, argv);
@@ -267,10 +249,8 @@ int main(int argc, char ** argv) {
         result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, 10);
     } else if (program.get<std::string>("-l") == "l2") {
         result = l2_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
-    } else if (program.get<std::string>("-l") == "binomial_admm") {
-        result = log_binomial_admm_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
     } else {
-        error_logger->error("The loss function specified is not supported.");
+        error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);
     }
 
