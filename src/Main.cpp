@@ -259,11 +259,32 @@ int main(int argc, char ** argv) {
     output["objective"] = result.objective;
     output["runtime"] = result.runtime;
 
+    float rounding_factor = 1e5;
     if (result.usage_matrix.has_value()) {
+        for (size_t i = 0; i < result.usage_matrix.value().size(); i++) {
+            for (size_t j = 0; j < result.usage_matrix.value()[i].size(); j++) {
+                result.usage_matrix.value()[i][j] = std::round(result.usage_matrix.value()[i][j] * rounding_factor) / rounding_factor;
+
+                if (result.usage_matrix.value()[i][j] == 0 && std::signbit(result.usage_matrix.value()[i][j])) { 
+                    result.usage_matrix.value()[i][j] = 0;
+                }
+            }
+        }
+
         output["usage_matrix"] = result.usage_matrix.value();
     }
 
     if (result.frequency_matrix.has_value()) {
+        for (size_t i = 0; i < result.frequency_matrix.value().size(); i++) {
+            for (size_t j = 0; j < result.frequency_matrix.value()[i].size(); j++) {
+                result.frequency_matrix.value()[i][j] = std::round(result.frequency_matrix.value()[i][j] * rounding_factor) / rounding_factor;
+
+                if (result.frequency_matrix.value()[i][j] == 0 && std::signbit(result.frequency_matrix.value()[i][j])) { 
+                    result.frequency_matrix.value()[i][j] = 0;
+                }
+            }
+        }
+
         output["frequency_matrix"] = result.frequency_matrix.value();
     }
 
