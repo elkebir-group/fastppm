@@ -8,44 +8,35 @@
 #include <list>
 
 #include "Func.h"
-#include "PWL.h"
+#include "State.h"
 #include "Primal.h"
 #include "Dual.h"
+#include "Tree.h"
 
 namespace LogBinomialPiecewiseLinearSolver {
-
-typedef std::pair<real, real> Func;
+class func_llh;
 
 class Solver {
 public:
-    std::function<real(real,real,real)> loss_func;
-    int n_intervals, n, root;
+    int n_intervals;
+    const int &n;
     real dual_0;
-    std::vector<std::pair<real,real> > helper;
-    std::vector<Func> funcs;
-    std::vector<Primal> primal;
-    std::vector<Dual> dual;
-    std::vector<PWL_Ropen> states;
-    std::vector<PWL_Ropen> sum;
+    std::unordered_map<int, func_llh> funcs;
+    std::unordered_map<int, Primal> primals;
+    std::unordered_map<int, Dual> duals;
+    std::unordered_map<int, State> states;
+    std::unordered_map<int, State> sums;
+    std::unordered_map<int, real> F;
+    Tree T;
 
-    std::vector<real> dual_vars;
-    std::vector<real> F;//
-    std::vector<std::vector<int> > children;
-    std::vector<std::vector<PWL_Ropen*> > children_state;
-
-    std::vector<real> BT_x, BT_y;
-
-    Solver(int max_n, int k);
+    Solver(int n_intervals);
     void init(const std::vector<int> &var, const std::vector<int> &ref,
               const std::vector<std::list<int> > &llist, int root);
-    void init_range(std::vector<real> & mid, real range);
-
-    void dfs(int node);
-    void dfs_BT(int node, real value);
-
+    void init_range(std::unordered_map<int, real> & mid, real range);
     real answer();
+    void solve_F();
     real main(real frac=0.75, real obj=1e-6);
-    ~Solver();
+    real move(int from, int to);
 };
 
 };

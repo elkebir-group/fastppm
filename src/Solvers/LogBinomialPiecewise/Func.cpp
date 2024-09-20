@@ -5,6 +5,33 @@
 #include "Func.h"
 
 namespace LogBinomialPiecewiseLinearSolver {
+//template<typename ctype>
+int binary_search_less(const std::unordered_map<int, ctype> & sorted_list, int size_of_list, const ctype &value){
+    int l_idx = 0, r_idx = size_of_list, mid_idx = (size_of_list)>>1;
+    while (l_idx < r_idx - 1){//while size > 1
+        if (sorted_list.at(mid_idx)<value){
+            l_idx = mid_idx;
+        } else {
+            r_idx = mid_idx;
+        }
+        mid_idx = (l_idx+r_idx)>>1;
+    }
+    return mid_idx;
+}
+
+//template<typename ctype>
+int binary_search_greater(const std::unordered_map<int, ctype> &sorted_list, int size_of_list, const ctype &value){
+    int l_idx = 0, r_idx = size_of_list, mid_idx = (size_of_list)>>1;
+    while (l_idx < r_idx - 1){//while size > 1
+        if (sorted_list.at(mid_idx)>value){
+            l_idx = mid_idx;
+        } else {
+            r_idx = mid_idx;
+        }
+        mid_idx = (l_idx+r_idx)>>1;
+    }
+    return mid_idx;
+}
 
 real log_eps(real x, real eps, int s_n) {
     if (x < eps) {
@@ -16,10 +43,6 @@ real log_eps(real x, real eps, int s_n) {
         return return_val;
     }
     return log(x);
-}
-
-real func_llh(real para_var, real para_ref, real x) {
-    return -para_var * log_eps(x) - para_ref * log_eps(1 - x);
 }
 
 };

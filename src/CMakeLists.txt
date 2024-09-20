@@ -3,7 +3,9 @@ add_executable(fastppm-cli
     Solvers/LogBinomialPiecewise/Dual.cpp 
     Solvers/LogBinomialPiecewise/Primal.cpp
     Solvers/LogBinomialPiecewise/Solver.cpp
-    Solvers/LogBinomialPiecewise/PWL.cpp
+    Solvers/LogBinomialPiecewise/Node.cpp
+    Solvers/LogBinomialPiecewise/State.cpp
+    Solvers/LogBinomialPiecewise/Tree.cpp
     Solvers/LogBinomialPiecewise/Func.cpp
     Solvers/L2/Solver.cpp
     Solvers/LogBinomialADMM/Solver.cpp

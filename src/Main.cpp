@@ -64,6 +64,7 @@ SolverResult l2_solve(
     auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
+
 SolverResult log_binomial_admm_solve(
     const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
@@ -110,10 +111,16 @@ SolverResult log_binomial_solve(
             ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
         }
 
-        LogBinomialPiecewiseLinearSolver::Solver solver(n_clones, K);
+        LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
-        objective += solver.main(0.8, 1e-4); // TODO: make these parameters configurable
-        frequency_matrix.push_back(solver.F);
+        objective += solver.main(0.75, 1e-6); // TODO: make these parameters configurable
+        
+        std::vector<double> frequencies(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            frequencies[j] = solver.F[j];
+        }
+
+        frequency_matrix.push_back(frequencies);
     }
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

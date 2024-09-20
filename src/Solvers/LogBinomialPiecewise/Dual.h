@@ -6,31 +6,27 @@
 #define EFFICIENTLLHESTIMATOR_DUAL_H
 
 #include "Func.h"
-#include <vector>
+#include "Element.h"
 
 namespace LogBinomialPiecewiseLinearSolver {
-
-class PWL_close;
-typedef PWL_close Primal;
-
-class PWL_open{//x not bounded. // dual function
+class Primal;
+class Dual:public step_base{//x not bounded. // dual function
 public:
-    PWL_open(int max_k);
     int k; // n of intervals;
-    std::vector<real> x;
-    std::vector<real> y;
-    std::vector<real> slope;
+    std::unordered_map<int, real> x;
+    std::unordered_map<int, real> y;
+    std::unordered_map<int, real> slope;
 
     void dual_from_primal(const Primal & primal);
 
+    inline real backtrace_base (real x) const override{
+        return 0;
+    }
+
 #ifdef _DEBUG
-    real operator()(real x) const;
     bool self_check() const;
 #endif
 };
-
-typedef PWL_open Dual;
-
 };
 
 #endif //EFFICIENTLLHESTIMATOR_DUAL_H

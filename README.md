@@ -37,6 +37,7 @@ The output files consist of the following:
 
 ## Usage
 
+<<<<<<< HEAD
 ### Option 1: As a command line tool
 
 `fastppm-cli` is a command line tool that can be used to estimate the 
@@ -68,6 +69,9 @@ Optional arguments:
  ```
 
 ### Option 2: As a Python library
+=======
+### Usage of Python
+>>>>>>> origin/tree_move
 
 ```
 import fastppm
@@ -86,6 +90,7 @@ print("Negative log likelihood:", ll)
 print("Frequency matrix:", a.F())
 ```
 
+<<<<<<< HEAD
 ## Examples
 
 As an example, we first simulate a phylogenetic with 10 clones and 3 samples
@@ -127,3 +132,26 @@ $ ./build/src/fastppm-cli -v examples/sim_collapsed_variant_matrix.txt\
 
 The output file `examples/sim_results.json` contains the output,
 which should match the simulated frequency matrix `examples/sim_obs_frequency_matrix.txt`.
+=======
+### Usage of Executable (Not suggested if you have multiple instances/samples)
+
+The format of input as follows:
+
+The first line contains a single number $n$ indicates the number of nodes/mutations/mutation clusters in the tree.
+
+The second line contains $n$ numbers seperated by spaces which are the numbers of __variant__ reads of each mutation.
+
+The third line contains $n$ numbers seperated by spaces which are the numbers of __total__ reads of each mutation.
+
+The forth line contains a single number indicates the root of the tree.
+
+The last $n-1$ lines contains the arcs of the trees, each line contains two numbers, seperated by space(s).
+The first is the parent and the second is the children.
+
+The same example of the above python code is included in `example.txt`.
+
+You can run the test excutable as follows:
+
+```fastppm-test [FILE] [K]```, where `[FILE]` is the input file, and `[K]` is the number of pieces.
+An example of execution is `fastppm-test example.txt 10`
+>>>>>>> origin/tree_move
