@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -198,7 +200,6 @@ def main():
     parser = argparse.ArgumentParser(description='Simulate a clonal matrix, usage matrix and read counts.')
 
     parser.add_argument('--mutations', type=int, required=True, help='Number of mutations.')
-    parser.add_argument('--clones', type=int, required=True, help='Number of clones.')
     parser.add_argument('--samples', type=int, required=True, help='Number of sequenced samples.')
     parser.add_argument('--coverage', type=float, required=True, help='Expected sequencing coverage.')
     parser.add_argument('--output', type=str, required=True, help='Output prefix.')
@@ -206,6 +207,7 @@ def main():
 
     args = parser.parse_args()
 
+    args.clones = args.mutations
     assert args.mutations >= args.clones, 'Number of mutations must be greater than or equal to number of clones.'
 
     np.random.seed(args.seed)
@@ -223,19 +225,12 @@ def main():
     
     np.savetxt(f'{args.output}_clonal_matrix.txt', clonal_matrix, fmt='%d')
     np.savetxt(f'{args.output}_usage_matrix.txt', usage_matrix, fmt='%.4f')
-    np.savetxt(f'{args.output}_variant_matrix.txt', variant_matrix, fmt='%d')
-    np.savetxt(f'{args.output}_total_matrix.txt', total_matrix, fmt='%d')
-    np.savetxt(f'{args.output}_obs_full_frequency_matrix.txt', full_frequeny_matrix, fmt='%.4f')
-    np.savetxt(f'{args.output}_obs_frequency_matrix.txt', f_hat, fmt='%.4f')
-    np.savetxt(f'{args.output}_collapsed_variant_matrix.txt', collapsed_variant_matrix, fmt='%d')
-    np.savetxt(f'{args.output}_collapsed_total_matrix.txt', collapsed_total_matrix, fmt='%d')
+    np.savetxt(f'{args.output}_frequency_matrix.txt', f_hat, fmt='%.4f')
+    np.savetxt(f'{args.output}_variant_matrix.txt', collapsed_variant_matrix, fmt='%d')
+    np.savetxt(f'{args.output}_total_matrix.txt', collapsed_total_matrix, fmt='%d')
 
     nx.write_adjlist(tree, f'{args.output}_tree.txt')
     
-    df = pd.DataFrame.from_dict(mutation_to_clone_mapping, orient='index').reset_index()
-    df.columns = ['mutation', 'clone']
-    df.to_csv(f'{args.output}_mutation_to_clone_mapping.txt', sep=',', index=False)
-
 if __name__ == "__main__":
     main()
 
