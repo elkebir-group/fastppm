@@ -1,7 +1,7 @@
 # fastppm: fast perfect phylogeny mixture using tree structured dual dynamic programming
 
 `fastppm` (fast perfect phylogeny mixtures) is a C++/Python libary for 
-the fast estimation of the frequency matrix $F \in [0,1]^{m \times n}$ 
+the fast estimation of the (unknown) frequency matrix $F \in [0,1]^{m \times n}$ 
 given variant and total read count matrices $$V,D \in \mathbb{N}^{m \times n}$$
 over a fixed n-clonal tree $\mathcal{T}$. `fastppm` provides support for
 estimation under a variety of convex loss functions such as the $\ell_1$ loss,
@@ -39,13 +39,13 @@ The output files consist of the following:
 
 ### Option 1: As a command line tool
 
-`fastppm-cli` is a command line tool that can be used to estimate the 
-frequency matrix $F$ given the variant and total read count 
-matrices $V$ and $D$ over a fixed n-clonal tree $\mathcal{T}$. 
-The tool requires the following three inputs:
+`fastppm-cli` is a command line tool to regress (estimate) the 
+unknown frequency matrix $F$ against the provided variant and total read count 
+matrices $V$ and $D$ with respect to a fixed n-clonal tree $\mathcal{T}$. 
+The tool requires the following three files as input:
 * A file containing the $n$-clonal tree $\mathcal{T}$ in adjacency list format.
-* A file containing an $m$-by-$n$ variant read count matrix $V$.
-* A file containing an $m$-by-$n$ total read count matrix $D$.
+* A file containing an $m$-by- $n$ variant read count matrix $V$.
+* A file containing an $m$-by- $n$ total read count matrix $D$.
 The nodes in the tree are assumed to be labeled from $0$ to $n-1$ and correspond
 to the columns of the variant and total read count matrices. 
 
