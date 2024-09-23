@@ -70,20 +70,20 @@ real Solver::main(real frac, real obj) {
         T.dfs(T.root);
         ans = answer();
         T.dfs_BT(T.root, dual_0);
+        solve_F();
         range = range*frac;
         init_range(F,range/2);
-        solve_F();
     } while (range/n_intervals > obj);
 
     return ans;
 }
 
-real Solver::move(int from, int to) {
-    T.move(from, to);
-    real ans = answer();
-    T.dfs_BT(T.root, dual_0);
-    solve_F();
-    return ans;
-}
+//real Solver::move(int from, int to) {
+//    T.move(from, to);
+//    real ans = answer();
+//    T.dfs_BT(T.root, dual_0);
+//    solve_F();
+//    return ans;
+//}
 
 };

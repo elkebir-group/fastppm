@@ -35,13 +35,13 @@ public:
 
     void dfs_update(int node);
 
-    void move(int from, int to); // assuming from is never an ancestor of to
-
-    void swap(int fr_a, int to_d); // assuming fr is an ancestoer of to
-
-    void insert_as_leaf(int parent, step_base* step, sum_base* sum, state_base* state);
-
-    void insert_on_edge(int child, step_base* step, sum_base* sum, state_base* state);
+//    void move(int from, int to); // assuming from is never an ancestor of to
+//
+//    void swap(int fr_a, int to_d); // assuming fr is an ancestoer of to
+//
+//    void insert_as_leaf(int parent, step_base* step, sum_base* sum, state_base* state);
+//
+//    void insert_on_edge(int child, step_base* step, sum_base* sum, state_base* state);
 };
 };
 
