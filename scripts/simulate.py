@@ -226,7 +226,10 @@ def main():
     weight_matrix = collapsed_total_matrix.copy()
     for i in range(weight_matrix.shape[0]):
         for j in range(weight_matrix.shape[1]):
-            weight_matrix[i, j] = np.random.randint(1, 100)
+            if i == 0:
+                weight_matrix[i, j] = np.random.randint(1, 100)
+            else:
+                weight_matrix[i, j] = weight_matrix[0, j]
     
     np.savetxt(f'{args.output}_clonal_matrix.txt', clonal_matrix, fmt='%d')
     np.savetxt(f'{args.output}_usage_matrix.txt', usage_matrix, fmt='%.4f')

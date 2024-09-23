@@ -10,12 +10,14 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Make input for PPM projection algorithm.')
     parser.add_argument('tree', type=str, help='Tree file')
     parser.add_argument('frequency_matrix', type=str, help='Frequency matrix file')
+    parser.add_argument('weight_matrix', type=str, help='Weight matrix file')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
     tree = nx.read_adjlist(args.tree, nodetype=int, create_using=nx.DiGraph())
     frequency_matrix = np.loadtxt(args.frequency_matrix)
+    weight_matrix = np.loadtxt(args.weight_matrix)
 
     if len(frequency_matrix.shape) == 1:
         frequency_matrix = frequency_matrix.reshape(1, -1)
@@ -29,7 +31,7 @@ if __name__ == '__main__':
     print()
 
     for i in range(n):
-        print("1.0", end=" ")
+        print(np.sqrt(weight_matrix[0, i]), end=" ")
     print()
 
     root = [node for node in tree.nodes if tree.in_degree(node) == 0][0]
@@ -42,5 +44,5 @@ if __name__ == '__main__':
     for i in range(n):
         neighbors = list(tree.successors(i)) + list(tree.predecessors(i))
         print(" ".join(map(str, neighbors)))
-    print(0)
+    print(1)
 

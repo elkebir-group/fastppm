@@ -1,8 +1,7 @@
-params.proj_dir           = "/n/fs/ragr-research/projects/fastBE/"
-params.sim_script         = "${params.proj_dir}/scripts/simulation.py"
-params.conversion_script  = "${params.proj_dir}/scripts/processing/make_projection_input.py" 
-params.python_script      = "${params.proj_dir}/scripts/vafpp_lp.py"
-params.fastbe_command     = "${params.proj_dir}/build/src/fastbe"
+params.proj_dir           = "/n/fs/ragr-research/projects/fastppm/"
+params.sim_script         = "${params.proj_dir}/scripts/simulate.py"
+params.conversion_script  = "${params.proj_dir}/scripts/make_projection_input.py" 
+params.fastppm_command    = "${params.proj_dir}/build/src/fastppm-cli"
 params.projection_command = "${params.proj_dir}/dependencies/projection/projection"
 
 params.nmutations = [125, 250, 375, 500, 625, 750, 875, 1000]
@@ -19,12 +18,12 @@ process create_sim {
         tuple val(mutations), val(samples), val(coverage), val(seed)
 
     output:
-        tuple file("sim_clonal_matrix.txt"), file("sim_mutation_to_clone_mapping.txt"), file("sim_obs_frequency_matrix.txt"), 
-              file("sim_total_matrix.txt"), file("sim_tree.txt"), file("sim_usage_matrix.txt"), file("sim_variant_matrix.txt"),
-              val("m${mutations}_n${mutations}_s${samples}_c${coverage}_r${seed}")
+        tuple file("sim_clonal_matrix.txt"), file("sim_frequency_matrix.txt"), file("sim_total_matrix.txt"), 
+              file("sim_tree.txt"), file("sim_usage_matrix.txt"), file("sim_variant_matrix.txt"),
+              file("sim_weight_matrix.txt"), val("m${mutations}_n${mutations}_s${samples}_c${coverage}_r${seed}")
 
     """
-    python '${params.sim_script}' --mutations ${mutations} --samples ${samples} --clones ${mutations} --coverage ${coverage} --seed ${seed} --output sim
+    python '${params.sim_script}' --mutations ${mutations} --samples ${samples} --coverage ${coverage} --seed ${seed} --output sim
     """
 }
 
@@ -34,14 +33,14 @@ process regress_projection {
     time '59m'
 
     input:
-        tuple path(clonal_matrix), path(mut_clone_mapping), path(freq_matrix), path(total_matrix),
-              path(clone_tree), path(usage_matrix), path(variant_matrix), val(id)
+        tuple path(clonal_matrix), path(freq_matrix), path(total_matrix),
+              path(clone_tree), path(usage_matrix), path(variant_matrix), path(weight_matrix), val(id)
 
     output:
         tuple file("projection_output.txt"), file("timing.txt"), val(id)
 
     """
-    python '${params.conversion_script}' ${clone_tree} ${freq_matrix} > input.txt
+    python '${params.conversion_script}' ${clone_tree} ${freq_matrix} ${weight_matrix} > input.txt
     /usr/bin/time -v '${params.projection_command}' input.txt projection_output.txt 1 2>> timing.txt
     """
 }
@@ -52,14 +51,15 @@ process regress_fastbe {
     time '59m'
 
     input:
-        tuple path(clonal_matrix), path(mut_clone_mapping), path(freq_matrix), path(total_matrix),
-              path(clone_tree), path(usage_matrix), path(variant_matrix), val(id)
+        tuple path(clonal_matrix), path(freq_matrix), path(total_matrix),
+              path(clone_tree), path(usage_matrix), path(variant_matrix), path(weight_matrix), val(id)
 
     output:
-        tuple file("cpp_results.json"), file("timing.txt"), val(id)
+        tuple file("fastppm_results.json"), file("timing.txt"), val(id)
 
     """
-    /usr/bin/time -v '${params.fastbe_command}' regress ${clone_tree} ${freq_matrix} --output cpp 2>> timing.txt
+    /usr/bin/time -v '${params.fastppm_command}' -t ${clone_tree} -v ${variant_matrix} -d ${total_matrix} -w ${weight_matrix} \
+                  --output fastppm_results.json -l l2 2>> timing.txt
     """
 }
 
