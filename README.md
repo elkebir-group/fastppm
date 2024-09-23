@@ -88,7 +88,7 @@ the estimated frequency matrix $F$, the usage matrix $U$, and the loss function 
 >>> fastppm.regress(tree, var, tot, loss_function="l1")
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
-ValueError: loss_function must be either 'l1' is not implemented yet
+ValueError: loss_function 'l1' is not yet implemented
 ```
 
 ## Examples
