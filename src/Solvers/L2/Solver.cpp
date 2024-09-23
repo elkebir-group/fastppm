@@ -66,7 +66,7 @@ namespace L2Solver {
 
             double alpha;
             if (children.size() == 0) {
-                alpha = std::max(0.0, gamma - 2.0 * freq);
+                alpha = std::max(0.0, gamma - 2.0 * weight * freq);
             } else {
                 alpha = g.compute_argmin(gamma, freq, weight);
             }

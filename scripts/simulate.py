@@ -222,12 +222,18 @@ def main():
 
     f_hat, collapsed_variant_matrix, collapsed_total_matrix = observe_frequency_matrix(variant_matrix, total_matrix, mutation_to_clone_mapping, args.clones)
     full_frequeny_matrix = variant_matrix / total_matrix
+
+    weight_matrix = collapsed_total_matrix.copy()
+    for i in range(weight_matrix.shape[0]):
+        for j in range(weight_matrix.shape[1]):
+            weight_matrix[i, j] = np.random.randint(1, 100)
     
     np.savetxt(f'{args.output}_clonal_matrix.txt', clonal_matrix, fmt='%d')
     np.savetxt(f'{args.output}_usage_matrix.txt', usage_matrix, fmt='%.4f')
     np.savetxt(f'{args.output}_frequency_matrix.txt', f_hat, fmt='%.4f')
     np.savetxt(f'{args.output}_variant_matrix.txt', collapsed_variant_matrix, fmt='%d')
     np.savetxt(f'{args.output}_total_matrix.txt', collapsed_total_matrix, fmt='%d')
+    np.savetxt(f'{args.output}_weight_matrix.txt', weight_matrix, fmt='%d')
 
     nx.write_adjlist(tree, f'{args.output}_tree.txt')
     
