@@ -9,6 +9,7 @@
 #include <spdlog/fmt/ostr.h>
 #include <nlohmann/json.hpp>
 
+#include "Main.h"
 #include "CloneTree.h"
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
@@ -16,22 +17,6 @@
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
-
-/* 
- * Represents the solver output.
- * 
- * Fields:
- *  - runtime: The time taken to solve the optimization problem in milliseconds.
- *  - objective: The value of the objective function after optimization.
- *  - usage_matrix: The usage matrix after optimization. This is an optional field.
- *  - frequency_matrix: The frequency matrix after optimization. This is an optional field.
- */
-struct SolverResult {
-    double runtime;
-    double objective;
-    std::optional<std::vector<std::vector<double>>> usage_matrix;
-    std::optional<std::vector<std::vector<double>>> frequency_matrix;
-};
 
 /* 
  * Solves the optimization problem using the L2 loss function.

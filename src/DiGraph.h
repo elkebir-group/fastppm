@@ -124,6 +124,10 @@ public:
         return vertices.find(u) != vertices.end();
     }
 
+    size_t in_degree(int u) const {
+        return pred.at(u).size();
+    }
+
     size_t out_degree(int u) const {
         return succ.at(u).size();
     }
