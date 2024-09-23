@@ -8,7 +8,7 @@ namespace L2Solver {
     void Solver::solve() {
         size_t nrows = frequency_matrix.size();
 
-        fs = forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, root);
+        fs = forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
 
         double obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -66,7 +66,7 @@ namespace L2Solver {
             if (children.size() == 0) {
                 alpha = std::max(0.0, gamma - 2.0 * freq);
             } else {
-                alpha = g.compute_argmin(gamma, freq);
+                alpha = g.compute_argmin(gamma, freq, weight_matrix[j][i]);
             }
 
             alphas[j][i] = alpha;

@@ -14,6 +14,7 @@ namespace L2Solver {
             digraph<int> clone_tree;
             std::unordered_map<int, int> vertex_map;
             std::vector<std::vector<double>> frequency_matrix;
+            std::vector<std::vector<double>> weight_matrix;
             int root;
         
             std::unordered_map<int, std::vector<PiecewiseQuadraticF>> fs;
@@ -30,6 +31,7 @@ namespace L2Solver {
                 digraph<int> clone_tree, 
                 std::unordered_map<int, int> vertex_map, 
                 std::vector<std::vector<double>> frequency_matrix, 
+                std::vector<std::vector<double>> weight_matrix,
                 int root
             ) : clone_tree(clone_tree), vertex_map(vertex_map), root(root) {
                 this->frequency_matrix.reserve(frequency_matrix.size());
@@ -40,6 +42,11 @@ namespace L2Solver {
                 for (size_t i = 0; i < frequency_matrix.size(); i++) {
                     this->alphas.push_back(std::vector<double>(frequency_matrix[i].size()));
                     this->frequencies.push_back(std::vector<double>(frequency_matrix[i].size()));
+                }
+
+                this->weight_matrix.reserve(weight_matrix.size());
+                for (size_t i = 0; i < weight_matrix.size(); i++) {
+                    this->weight_matrix.push_back(std::vector<double>(weight_matrix[i].begin(), weight_matrix[i].end()));
                 }
             }
 

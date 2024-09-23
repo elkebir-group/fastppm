@@ -22,12 +22,12 @@ public:
     }
 
     // leaf constructor
-    PiecewiseQuadraticF(double frequency) {
-        breakpoints.push_back(2.0 * frequency);
+    PiecewiseQuadraticF(double frequency, double weight) {
+        breakpoints.push_back(2.0 * weight * frequency);
         slopes.push_back(0.0);
         f0 = 0.0;
         c0 = frequency;
-        m0 = -0.5;
+        m0 = -1.0/(2.0*weight);
     }
 
     // runs in O(k + k') time
@@ -139,24 +139,26 @@ public:
     // when F = \sum{j \in \delta(i)}J_j, this updates F to be 
     // J_i(\gamma) = max_{x \geq 0}(h_i(x - \gamma) + F(x))
     // really, this is the meat of the algorithm
-    PiecewiseQuadraticF update_representation(double frequency) const {
+    PiecewiseQuadraticF update_representation(double frequency, double weight) const {
         // compute intercepts of the pieces of the derivative, using continuity
+        double half_weight_inv = 1.0 / (2.0 * weight);
+
         std::vector<double> cs = get_derivative_intercepts();
 
-        // find first breakpoint x
+        // find first breakpoint x such that \alpha_i^*(x) = 0
         size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
         double x = 0.0;
         if (l == 0) {
             x = frequency - c0;
         } else {
-            x = frequency + (0.5 * breakpoints[l-1]) - cs[l - 1] + (breakpoints[l-1] * (slopes[l-1] - 0.5));
+            x = frequency + (half_weight_inv * breakpoints[l-1]) - cs[l - 1] + (breakpoints[l-1] * (slopes[l-1] - half_weight_inv));
         }
 
-        x *= 2.0;
+        x *= 2.0 * weight;
 
         std::vector<double> zs(breakpoints.size());
         for (size_t i = 0; i < breakpoints.size(); i++) {
-            zs[i] = 2.0 * (frequency + 0.5 * breakpoints[i] - cs[i]);
+            zs[i] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
         }
 
         std::vector<double> new_breakpoints;
@@ -174,23 +176,23 @@ public:
                 slope = slopes[i + l - 1];
             }
 
-            new_slopes.push_back(-(slope / (2*slope - 1)));
+            new_slopes.push_back(-(slope / (2*weight*slope - 1)));
         }
         
-        double new_m0 = -0.5;
+        double new_m0 = -half_weight_inv;
         double new_c0 = frequency;
 
         l = std::lower_bound(zs.begin(), zs.end(), 0.0) - zs.begin();
         double alpha_star = 0.0;
 
         if (l == 0) {
-            alpha_star = (frequency - c0) / (m0 - 0.5);
+            alpha_star = (frequency - c0) / (m0 - half_weight_inv);
         } else {
-            alpha_star = (frequency + 0.5 * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - 0.5) + breakpoints[l-1];
+            alpha_star = (frequency + half_weight_inv * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - half_weight_inv) + breakpoints[l-1];
         }
 
         alpha_star = std::max(0.0, alpha_star);
-        double new_f0 = this->operator()(alpha_star) - (0.25 * alpha_star * alpha_star + frequency * alpha_star);
+        double new_f0 = this->operator()(alpha_star) - (0.5 * half_weight_inv * alpha_star * alpha_star + frequency * alpha_star);
         
         PiecewiseQuadraticF result;
         result.f0 = new_f0;
@@ -202,7 +204,7 @@ public:
         return result;
     }
 
-    double compute_argmin(double gamma, double frequency) {
+    double compute_argmin(double gamma, double frequency, double weight) {
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
 

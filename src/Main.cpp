@@ -40,6 +40,7 @@ SolverResult l2_solve(
     const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
+    const std::vector<std::vector<double>>& weight_matrix,
     const digraph<int>& clone_tree,
     size_t root
 ) {
@@ -53,7 +54,7 @@ SolverResult l2_solve(
         frequency_matrix.push_back(frequencies);
     }
 
-    L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, root);
+    L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
 
     auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
@@ -189,6 +190,10 @@ int main(int argc, char ** argv) {
         .help("Path to the total read matrix file")
         .required();
 
+    program.add_argument("-w", "--weights")
+        .help("Path to the weights matrix file")
+        .default_value("");
+
     program.add_argument("-t", "--tree")
         .help("Path to the tree file")
         .required();
@@ -240,6 +245,31 @@ int main(int argc, char ** argv) {
         }
     }
 
+    std::vector<std::vector<double>> weights(variant_matrix.size(), std::vector<double>(variant_matrix[0].size(), 1.0));
+    if (!program.get<std::string>("-w").empty()) {
+        weights = parse_matrix<double>(program.get<std::string>("-w"));
+        if (weights.size() != variant_matrix.size()) {
+            error_logger->error("The weights matrix has different number of rows than the variant read matrix.");
+            std::exit(1);
+        }
+
+        for (size_t i = 0; i < weights.size(); i++) {
+            if (weights[i].size() != variant_matrix[i].size()) {
+                error_logger->error("The weights matrix has different number of columns than the variant read matrix.");
+                std::exit(1);
+            }
+        }
+
+        for (size_t i = 0; i < weights.size(); i++) {
+            for (size_t j = 0; j < weights[i].size(); j++) {
+                if (weights[i][j] < 0) {
+                    error_logger->error("The weights matrix contains negative values.");
+                    std::exit(1);
+                }
+            }
+        }
+    }
+
     // vertex_map : takes the vertex ID in the adjacency list to the vertex ID in the digraph
     auto [clone_tree, vertex_map] = parse_adjacency_list(program.get<std::string>("tree"));
     size_t root = program.get<int>("-r");
@@ -248,7 +278,7 @@ int main(int argc, char ** argv) {
     if (program.get<std::string>("-l") == "binomial") {
         result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, 10);
     } else if (program.get<std::string>("-l") == "l2") {
-        result = l2_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root);
+        result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, root);
     } else {
         error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);

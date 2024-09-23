@@ -25,6 +25,7 @@ std::unordered_map<int, std::vector<Representation>> forward_solve(
     digraph<int>& clone_tree, 
     const std::unordered_map<int, int>& vertex_map, 
     const std::vector<std::vector<double>>& frequency_matrix, 
+    const std::vector<std::vector<double>>& weight_matrix, 
     int root
 ) {
     size_t nrows = frequency_matrix.size();
@@ -49,7 +50,7 @@ std::unordered_map<int, std::vector<Representation>> forward_solve(
         // If leaf, compute Representation and return.
         if (clone_tree.out_degree(vertex_map.at(i)) == 0) {
             for (size_t j = 0; j < nrows; ++j) {
-                fs[vertex_map.at(i)][j] = Representation(frequency_matrix[j][i]);
+                fs[vertex_map.at(i)][j] = Representation(frequency_matrix[j][i], weight_matrix[j][i]);
             }
 
             visited[vertex_map.at(i)] = true;
@@ -78,7 +79,7 @@ std::unordered_map<int, std::vector<Representation>> forward_solve(
                 g = g + f; 
             }
 
-            fs[vertex_map.at(i)][j] = g.update_representation(frequency_matrix[j][i]);
+            fs[vertex_map.at(i)][j] = g.update_representation(frequency_matrix[j][i], weight_matrix[j][i]);
         }
 
         visited[vertex_map.at(i)] = true;
