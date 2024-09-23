@@ -62,15 +62,17 @@ namespace L2Solver {
             }
 
             double freq = frequency_matrix[j][i];
+            double weight = weight_matrix[j][i];
+
             double alpha;
             if (children.size() == 0) {
                 alpha = std::max(0.0, gamma - 2.0 * freq);
             } else {
-                alpha = g.compute_argmin(gamma, freq, weight_matrix[j][i]);
+                alpha = g.compute_argmin(gamma, freq, weight);
             }
 
             alphas[j][i] = alpha;
-            frequencies[j][i] = (alpha - gamma) / 2.0 + freq;
+            frequencies[j][i] = (alpha - gamma) / (2.0 * weight) + freq;
         }
     }
 };

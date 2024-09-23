@@ -207,20 +207,21 @@ public:
     double compute_argmin(double gamma, double frequency, double weight) {
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
+        double half_weight_inv = 1.0 / (2.0 * weight);
 
         // find first breakpoint x
         std::vector<double> zs(breakpoints.size());
         for (size_t i = 0; i < breakpoints.size(); i++) {
-            zs[i] = 2.0 * (frequency + 0.5 * breakpoints[i] - cs[i]);
+            zs[i] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
         }
 
         size_t l = std::lower_bound(zs.begin(), zs.end(), gamma) - zs.begin();
         double alpha_star = 0.0;
 
         if (l == 0) {
-            alpha_star = (frequency - 0.5*gamma - c0) / (m0 - 0.5);
+            alpha_star = (frequency - half_weight_inv*gamma - c0) / (m0 - half_weight_inv);
         } else {
-            alpha_star = (frequency - 0.5*gamma + 0.5 * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - 0.5) + breakpoints[l-1];
+            alpha_star = (frequency - half_weight_inv*gamma + half_weight_inv * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - half_weight_inv) + breakpoints[l-1];
         }
 
         return std::max(0.0, alpha_star);
