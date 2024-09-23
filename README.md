@@ -33,7 +33,7 @@ $ make
 
 The output files consist of the following:
 * `fastppm-cli` which is a command line tool.
-* `fastppm.cpython-310-darwin.so`, which is a Python libary whose extension will vary depending on OS and python libary
+* `fastppm.cpython-39-x86_64-linux-gnu.so`, which is a Python libary whose extension will vary depending on OS and Python installation.
 
 ## Usage
 
@@ -69,21 +69,26 @@ Optional arguments:
 
 ### Option 2: As a Python library
 
-```
-import fastppm
+Ensure the Python library is in the Python path. The following example demonstrates
+how to use the Python library to regress the frequency matrix $F$ against the provided
+variant and total read count matrices $V$ and $D$ with respect to a fixed n-clonal tree $\mathcal{T}$.
+The clonal tree is provided as an adjacency list, and the variant and total read count matrices
+are provided as lists of lists. The function `fastppm.regress` returns a dictionary containing
+the estimated frequency matrix $F$, the usage matrix $U$, and the loss function objective.
 
-a = fastppm.CVXTree(7)
-
-tree = [[1,2],[3,4],[5,6],[],[],[],[]]
-root = 0
-
-var = [9,4,4,1,2,2,1]
-ref = [1,6,6,9,8,8,8]
-
-ll = a.optimize(tree, root, var, ref)
-
-print("Negative log likelihood:", ll)
-print("Frequency matrix:", a.F())
+```python
+>>> import fastppm
+>>> tree = [[1,2],[3,4],[5,6],[],[],[],[]]
+>>> var = [[9,4,4,1,2,2,1]]
+>>> tot = [[10, 10, 10, 10, 10, 10, 10]]
+>>> fastppm.regress(tree, var, tot)
+{'objective': 2.7755575615628914e-17, 'usage_matrix': [[0.09999999999999998, 0.10000000000000003, 0.1, 0.1, 0.2, 0.2, 0.1]], 'frequency_matrix': [[0.9, 0.4, 0.4, 0.1, 0.2, 0.2, 0.1]]}
+>>> fastppm.regress(tree, var, tot, loss_function="binomial")
+{'objective': 33.22077103454023, 'usage_matrix': [[0.10001187362880015, 0.10000070598832317, 0.10000070598832315, 0.09999343171700832, 0.19999374434782113, 0.19999374434782113, 0.09999343171700832]], 'frequency_matrix': [[0.8999876377351054, 0.3999878820531526, 0.3999878820531526, 0.09999343171700832, 0.19999374434782113, 0.19999374434782113, 0.09999343171700832]]}
+>>> fastppm.regress(tree, var, tot, loss_function="l1")
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ValueError: loss_function must be either 'l1' is not implemented yet
 ```
 
 ## Examples
