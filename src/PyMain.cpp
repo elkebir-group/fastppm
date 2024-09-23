@@ -68,7 +68,7 @@ py::dict regress(
     } else if (loss_function == "binomial") {
         r = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, 10);
     } else if (loss_function == "l1") {
-        throw std::invalid_argument("loss_function must be either 'l1' is not implemented yet");
+        throw std::invalid_argument("loss_function 'l1' is not yet implemented");
     } else {
         throw std::invalid_argument("loss_function must be one of ['l1', 'l2', 'binomial']");
     }
