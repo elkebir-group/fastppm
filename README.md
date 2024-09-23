@@ -44,10 +44,10 @@ unknown frequency matrix $F$ against the provided variant and total read count
 matrices $V$ and $D$ with respect to a fixed n-clonal tree $\mathcal{T}$. 
 The tool requires the following three files as input:
 * A file containing the $n$-clonal tree $\mathcal{T}$ in adjacency list format.
-* A file containing an $m$-by- $n$ variant read count matrix $V$.
-* A file containing an $m$-by- $n$ total read count matrix $D$.
-The nodes in the tree are assumed to be labeled from $0$ to $n-1$ and correspond
-to the columns of the variant and total read count matrices. 
+* A file containing an $m\text{-by-}n$ variant read count matrix $V$.
+* A file containing an $m\text{-by-}n$ total read count matrix $D$.
+The nodes in the tree are assumed to be labeled $\\{0, \ldots, n - 1\\}$ and correspond
+to the $n$ columns of the variant and total read count matrices. 
 
 The tool outputs a JSON file containing the estimated frequency matrix $F$,
 the usage matrix $U$, the loss function objective, and the running time.
