@@ -81,7 +81,7 @@ SolverResult log_binomial_solve(
 
         LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
-        objective += solver.main(0.75, 1e-5); // TODO: make these parameters configurable
+        objective += solver.main(0.75, 1e-4); // TODO: make these parameters configurable
         
         std::vector<double> frequencies(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
