@@ -9,11 +9,14 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -pg --coverage")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
 
 # turn off JSON library tests
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# setup PyBind11
+set(PYBIND11_FINDPYTHON ON)
 
 # compile libraries
 add_subdirectory(extern/spdlog)
@@ -22,6 +25,7 @@ add_subdirectory(extern/csv-parser)
 add_subdirectory(extern/argparse)
 add_subdirectory(extern/json)
 add_subdirectory(extern/pybind11)
+
 
 # compile the project
 project(fastppm VERSION 1.0)

@@ -10,7 +10,7 @@ add_executable(fastppm-cli
     Solvers/L2/Solver.cpp
 )
 
-# add libraries
+# add libraries to the executable
 target_link_libraries(fastppm-cli PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(fastppm-cli PRIVATE pprint)
 target_link_libraries(fastppm-cli PRIVATE spdlog)
@@ -32,6 +32,7 @@ pybind11_add_module(
     Solvers/L2/Solver.cpp
 )
 
+# add libraries to the python bindings
 target_link_libraries(fastppm PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(fastppm PRIVATE pprint)
 target_link_libraries(fastppm PRIVATE spdlog)
