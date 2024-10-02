@@ -1,8 +1,10 @@
 import re
 import os
 import argparse
+import numpy as np
 import networkx as nx
 import pandas as pd
+import fastppm
 
 def load_files(directory):
     data = []
@@ -18,6 +20,31 @@ def load_files(directory):
 
             true_tree     = nx.read_adjlist(os.path.join('data/simulations/', subdir, 'sim_tree.txt'))
             inferred_tree = nx.read_adjlist(os.path.join(directory, algorithm, subdir, 'tree.txt'))
+
+            valid_inferred_tree = True
+            if inferred_tree.number_of_nodes() != true_tree.number_of_nodes():
+                valid_inferred_tree = False
+
+            if inferred_tree.number_of_edges() != true_tree.number_of_edges():
+                valid_inferred_tree = False
+
+            negative_log_likelihood = None
+            if valid_inferred_tree:
+                variant_matrix = np.loadtxt(os.path.join('data/simulations/', subdir, 'sim_variant_matrix.txt')).astype(int)
+                total_matrix   = np.loadtxt(os.path.join('data/simulations/', subdir, 'sim_total_matrix.txt')).astype(int)
+
+                n = variant_matrix.shape[1]
+                adj_list = [[] for _ in range(n)]
+                for (i, j) in inferred_tree.edges():
+                    adj_list[int(i)].append(int(j))
+    
+                try:
+                    res = fastppm.regress(adj_list, variant_matrix.tolist(), total_matrix.tolist(), loss_function='binomial')
+                    negative_log_likelihood = res['objective']
+                except:
+                    print('Error in', algorithm, subdir)
+                    valid_inferred_tree = False
+
 
             true_positives = len(set(true_tree.edges()) & set(inferred_tree.edges()))
             false_positives = len(set(inferred_tree.edges()) - set(true_tree.edges()))
@@ -35,6 +62,8 @@ def load_files(directory):
                 'false_positives': false_positives,
                 'false_negatives': false_negatives,
                 'f1_score': f1_score,
+                'valid_inferred_tree': valid_inferred_tree,
+                'negative_log_likelihood': negative_log_likelihood
             })
             
     return pd.DataFrame(data)

@@ -15,17 +15,17 @@ process orchard_star {
     memory '8 GB'
     time '59m'
 
-    publishDir "nextflow_results/search/orchard-star-binomial/${id}", mode: 'copy', overwrite: true
+    publishDir "nextflow_results/search/orchard-star-l2/${id}", mode: 'copy', overwrite: true
 
     input:
         tuple val(id), path(variant_matrix), path(total_matrix)
 
     output:
-        tuple val(id), path("results.npz"), path("tree.txt"), path("timing.txt")
+        tuple val(id), path("results.npz"), path("tree.txt"), path("timing.txt"), path("orchard_mutations.ssm"), path("orchard_params.json")
         
     """
     ${params.python} ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
-    /usr/bin/time -v ${params.python} ${params.orchard_star} orchard_mutations.ssm orchard_params.json results.npz -k 5 -f 50 -n 16 2> timing.txt
+    /usr/bin/time -v ${params.python} ${params.orchard_star} orchard_mutations.ssm orchard_params.json results.npz -k 5 -f 50 -n 16 -p 2> timing.txt
     ${params.python} ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }
@@ -45,7 +45,7 @@ process orchard {
         
     """
     python ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
-    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 5 -f 50 -n 16 2> timing.txt
+    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 5 -f 50 -n 16 -p 2> timing.txt
     python ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }
@@ -69,6 +69,6 @@ workflow {
         [id, variant_matrix, total_matrix]
     }
 
-    // sim_files | orchard
+    sim_files | orchard
     sim_files | orchard_star
 }

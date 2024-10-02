@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
     # write adjacency list to NX format
     with open(args.output, 'w') as f:
-        for row in adjacency_list[1:]:
+        for row in adjacency_list[1:]: # drops the synthetic root added by orchard
             f.write(' '.join([str(x - 1) for x in row]) + '\n')
 
