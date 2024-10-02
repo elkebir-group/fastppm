@@ -78,14 +78,17 @@ the estimated frequency matrix $F$, the usage matrix $U$, and the loss function 
 
 ```python
 >>> import fastppm
->>> tree = [[1,2],[3,4],[5,6],[],[],[],[]]
->>> var = [[9,4,4,1,2,2,1]]
->>> tot = [[10, 10, 10, 10, 10, 10, 10]]
->>> fastppm.regress(tree, var, tot)
-{'objective': 2.7755575615628914e-17, 'usage_matrix': [[0.09999999999999998, 0.10000000000000003, 0.1, 0.1, 0.2, 0.2, 0.1]], 'frequency_matrix': [[0.9, 0.4, 0.4, 0.1, 0.2, 0.2, 0.1]]}
->>> fastppm.regress(tree, var, tot, loss_function="binomial")
+>>> tree  = [[1,2], [3,4], [5,6], [], [], [], []]
+>>> var   = [[9, 4, 4, 1, 2, 2, 1]]
+>>> tot   = [[10, 10, 10, 10, 10, 10, 10]]
+>>> freqs = [[0.9, 0.4, 0.4, 0.1, 0.2, 0.2, 0.1]]
+>>> fastppm.regress_counts(tree, var, tot)
+{'objective': 0.0, 'usage_matrix': [[0.1, 0.1, 0.1, 0.1, 0.2, 0.2, 0.1]], 'frequency_matrix': [[0.9, 0.4, 0.4, 0.1, 0.2, 0.2, 0.1]]}
+>>> fastppm.regress_counts(tree, var, tot, loss_function="binomial")
 {'objective': 33.22077103454023, 'usage_matrix': [[0.10001187362880015, 0.10000070598832317, 0.10000070598832315, 0.09999343171700832, 0.19999374434782113, 0.19999374434782113, 0.09999343171700832]], 'frequency_matrix': [[0.8999876377351054, 0.3999878820531526, 0.3999878820531526, 0.09999343171700832, 0.19999374434782113, 0.19999374434782113, 0.09999343171700832]]}
->>> fastppm.regress(tree, var, tot, loss_function="l1")
+>>> res = fastppm.regress_frequencies(tree, freqs)
+{'objective': 0.0, 'usage_matrix': [[0.1, 0.1, 0.1, 0.1, 0.2, 0.2, 0.1]], 'frequency_matrix': [[0.9, 0.4, 0.4, 0.1, 0.2, 0.2, 0.1]]}
+>>> fastppm.regress_counts(tree, var, tot, loss_function="l1")
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
 ValueError: loss_function 'l1' is not yet implemented

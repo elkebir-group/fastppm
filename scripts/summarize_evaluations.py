@@ -12,6 +12,10 @@ def load_files(directory):
         for subdir in os.listdir(os.path.join(directory, algorithm)):
             match = re.search(r'n(\d+)_s(\d+)_c(\d+)_r(\d+)', subdir)
             n, s, c, r = match.groups()
+
+            if not os.path.exists(os.path.join(directory, algorithm, subdir, 'timing.txt')):
+                continue
+
             with open(os.path.join(directory, algorithm, subdir, 'timing.txt')) as f:
                 timing = f.read().strip()
                 match = re.search(r'Elapsed \(wall clock\) time \(h:mm:ss or m:ss\): (.*)', timing)
@@ -20,6 +24,10 @@ def load_files(directory):
 
             true_tree     = nx.read_adjlist(os.path.join('data/simulations/', subdir, 'sim_tree.txt'))
             inferred_tree = nx.read_adjlist(os.path.join(directory, algorithm, subdir, 'tree.txt'))
+
+            results_file  = os.path.join(directory, algorithm, subdir, 'results.npz')
+            results_npz   = np.load(results_file)
+            log_likelihood_orchard = results_npz['llh'][0]
 
             valid_inferred_tree = True
             if inferred_tree.number_of_nodes() != true_tree.number_of_nodes():
@@ -63,7 +71,8 @@ def load_files(directory):
                 'false_negatives': false_negatives,
                 'f1_score': f1_score,
                 'valid_inferred_tree': valid_inferred_tree,
-                'negative_log_likelihood': negative_log_likelihood
+                'negative_log_likelihood': negative_log_likelihood,
+                'log_likelihood_orchard': log_likelihood_orchard
             })
             
     return pd.DataFrame(data)
