@@ -18,7 +18,7 @@ Solver::Solver(int n_intervals):n_intervals(n_intervals),n(T.size) {
 void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
                const std::vector<std::list<int> > &llist, int root) {
     T.init(llist, root);
-    for (int i = 0,idx; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         T.nodes[i].step_ptr = &duals[i];
         T.nodes[i].state_ptr = &states[i];
         T.nodes[i].sum_of_children = &sums[i];
@@ -28,9 +28,17 @@ void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
     }
 }
 
-void Solver::init_range(std::unordered_map<int, real> &mid, real fu){
+void Solver::init_range(std::unordered_map<int, real> &mid, real fu, double eps){
     for (int i = 0; i < n; i++){
-        primals[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,&funcs[i]);
+        if (funcs[i].var > 0) {
+            primals[i].update(std::max(mid[i]-fu, eps),std::min(mid[i]+fu,1.),n_intervals,&funcs[i]);
+        }
+        else if (funcs[i].ref > 0) {
+            primals[i].update(std::max(mid[i]-fu, 0.),std::min(mid[i]+fu,1. - eps),n_intervals,&funcs[i]);
+        }
+        else {
+            primals[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,&funcs[i]);
+        }
         duals[i].dual_from_primal(primals[i]);
     }
 }
@@ -54,7 +62,17 @@ void Solver::solve_F() {
 //    f primal[node].backtrace(dual_vars[node] - value );
 }
 
-real Solver::main(real frac, real obj) {
+real Solver::solve(real eps) {
+     real  ans;
+     init_range(F,0.51, eps);
+     T.dfs(T.root);
+     ans = answer();
+
+     solve_F();
+     return ans;
+}
+
+real Solver::solve_iteratively(real frac, real obj) {
     // real range = 1, ans;
     // init_range(F,0.51);
     // T.dfs(T.root);

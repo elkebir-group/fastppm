@@ -32,10 +32,11 @@ public:
     Solver(int n_intervals);
     void init(const std::vector<int> &var, const std::vector<int> &ref,
               const std::vector<std::list<int> > &llist, int root);
-    void init_range(std::unordered_map<int, real> & mid, real range);
+    void init_range(std::unordered_map<int, real> & mid, real range, real eps=0.);
     real answer();
     void solve_F();
-    real main(real frac=0.75, real obj=1e-6);
+    real solve_iteratively(real frac=0.75, real obj=1e-6);
+    real solve(real eps=0.);
     real move(int from, int to);
 };
 

@@ -50,6 +50,48 @@ SolverResult l2_solve(
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
 
+SolverResult log_binomial_fixed_solve(
+    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root,
+    int K
+) {
+    auto edges = clone_tree.edges();
+    int n_clones = edges.size() + 1;
+    std::vector<std::list<int>> link_list(n_clones);
+    for (auto& [u, v] : edges) {
+        link_list[clone_tree[u].data].push_back(clone_tree[v].data);
+    }
+
+    std::vector<std::vector<double>> frequency_matrix;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    double objective = 0;
+    for (size_t i = 0; i < variant_matrix.size(); i++) {
+        std::vector<int> ref_vector(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
+        }
+
+        LogBinomialPiecewiseLinearSolver::Solver solver(K);
+        solver.init(variant_matrix[i], ref_vector, link_list, root);
+        objective += solver.solve(1e-4);
+
+        std::vector<double> frequencies(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            frequencies[j] = solver.F[j];
+        }
+
+        frequency_matrix.push_back(frequencies);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    auto usage_matrix = left_inverse(clone_tree, vertex_map, frequency_matrix);
+    return {runtime, objective, usage_matrix, frequency_matrix};
+}
 /* 
  * Solves the optimization problem using the binomial loss function
  * with Yuanyuan's progressive piecewise linear solver.
@@ -81,7 +123,7 @@ SolverResult log_binomial_solve(
 
         LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
-        objective += solver.main(0.75, 1e-4); // TODO: make these parameters configurable
+        objective += solver.solve_iteratively(0.75, 1e-4); // TODO: make these parameters configurable
         
         std::vector<double> frequencies(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
@@ -195,7 +237,12 @@ int main(int argc, char ** argv) {
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
         .default_value("binomial")
-        .choices("l1", "l2", "binomial");
+        .choices("l1", "l2", "binomial", "binomial_K");
+
+    program.add_argument("-K", "--segments")
+        .help("Number of segments, only used when loss function is 'binomial' or 'binomial_K'")
+        .default_value(10)
+        .scan<'d', int>();
 
     try {
         program.parse_args(argc, argv);
@@ -258,12 +305,15 @@ int main(int argc, char ** argv) {
     // vertex_map : takes the vertex ID in the adjacency list to the vertex ID in the digraph
     auto [clone_tree, vertex_map] = parse_adjacency_list(program.get<std::string>("tree"));
     size_t root = program.get<int>("-r");
+    size_t nr_segments = program.get<int>("-K");
 
     SolverResult result;
     if (program.get<std::string>("-l") == "binomial") {
-        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, 10);
+        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, nr_segments);
+    } else if (program.get<std::string>("-l") == "binomial_K") {
+        result = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, nr_segments);
     } else if (program.get<std::string>("-l") == "l2") {
-        result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, root);
+            result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, root);
     } else {
         error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);
