@@ -41,4 +41,13 @@ SolverResult log_binomial_solve(
     int K
 );
 
+SolverResult log_binomial_fixed_solve(
+        const std::unordered_map<int, int>& vertex_map,
+        const std::vector<std::vector<int>>& variant_matrix,
+        const std::vector<std::vector<int>>& total_matrix,
+        const digraph<int>& clone_tree,
+        size_t root,
+        int K
+);
+
 #endif
