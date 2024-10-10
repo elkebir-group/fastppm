@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "../../DiGraph.h"
+#include "DiGraph.h"
 #include "PiecewiseQuadraticF.h"
 
 namespace L2Solver {

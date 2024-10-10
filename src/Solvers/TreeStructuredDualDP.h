@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <stack>
 
-#include "../DiGraph.h"
+#include "DiGraph.h"
 
 /* 
  * Solves the dual problem over a clone tree using the

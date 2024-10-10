@@ -1,5 +1,6 @@
-add_executable(fastppm-cli 
-    Main.cpp
+# Build the fastppm library
+
+add_library(fastppm-lib STATIC 
     Lib.cpp 
     Solvers/LogBinomialPiecewise/Dual.cpp 
     Solvers/LogBinomialPiecewise/Primal.cpp
@@ -12,30 +13,44 @@ add_executable(fastppm-cli
 )
 
 # add libraries to the executable
-target_link_libraries(fastppm-cli PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(fastppm-cli PRIVATE pprint)
-target_link_libraries(fastppm-cli PRIVATE spdlog)
-target_link_libraries(fastppm-cli PRIVATE csv)
-target_link_libraries(fastppm-cli PRIVATE argparse)
+target_link_libraries(fastppm-lib PRIVATE
+    nlohmann_json::nlohmann_json
+    pprint
+    spdlog
+    csv
+)
 
-# compile python bindings
+target_include_directories(fastppm-lib PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# Build the fastppm CLI
+add_executable(fastppm-cli
+  Main.cpp
+)
+
+target_link_libraries(fastppm-cli PRIVATE
+    fastppm-lib
+    argparse
+    nlohmann_json::nlohmann_json
+    pprint
+    spdlog
+    csv
+)
+
+# Build the fastppm Python bindings
 pybind11_add_module(
     fastppm MODULE 
     PyMain.cpp 
-    Lib.cpp
-    Solvers/LogBinomialPiecewise/Dual.cpp 
-    Solvers/LogBinomialPiecewise/Primal.cpp
-    Solvers/LogBinomialPiecewise/Solver.cpp
-    Solvers/LogBinomialPiecewise/Node.cpp
-    Solvers/LogBinomialPiecewise/State.cpp
-    Solvers/LogBinomialPiecewise/Tree.cpp
-    Solvers/LogBinomialPiecewise/Func.cpp
-    Solvers/L2/Solver.cpp
 )
 
 # add libraries to the python bindings
-target_link_libraries(fastppm PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(fastppm PRIVATE pprint)
-target_link_libraries(fastppm PRIVATE spdlog)
-target_link_libraries(fastppm PRIVATE csv)
-target_link_libraries(fastppm PRIVATE argparse)
+target_link_libraries(fastppm PRIVATE
+    fastppm-lib
+    nlohmann_json::nlohmann_json
+    pprint
+    spdlog
+    csv
+    argparse
+)
