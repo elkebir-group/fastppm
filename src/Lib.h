@@ -1,5 +1,5 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef LIB_H
+#define LIB_H
 
 #include <vector>
 #include <optional>

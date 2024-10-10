@@ -1,5 +1,6 @@
 add_executable(fastppm-cli 
-    Main.cpp 
+    Main.cpp
+    Lib.cpp 
     Solvers/LogBinomialPiecewise/Dual.cpp 
     Solvers/LogBinomialPiecewise/Primal.cpp
     Solvers/LogBinomialPiecewise/Solver.cpp
@@ -21,7 +22,7 @@ target_link_libraries(fastppm-cli PRIVATE argparse)
 pybind11_add_module(
     fastppm MODULE 
     PyMain.cpp 
-    Main.cpp
+    Lib.cpp
     Solvers/LogBinomialPiecewise/Dual.cpp 
     Solvers/LogBinomialPiecewise/Primal.cpp
     Solvers/LogBinomialPiecewise/Solver.cpp

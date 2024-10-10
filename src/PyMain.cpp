@@ -1,4 +1,4 @@
-#include "Main.h"
+#include "Lib.h"
 #include "DiGraph.h"
 #include "CloneTree.h"
 #include "Solvers/L2/Solver.h"
@@ -173,7 +173,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("total_matrix"), 
         py::arg("weight_matrix") = std::nullopt,
         py::arg("root") = std::nullopt,
-        py::arg("loss_function") = "binom",
+        py::arg("loss_function") = "binomial",
         py::arg("nr_segments") = 10
     );
 
