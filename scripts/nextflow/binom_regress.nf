@@ -91,12 +91,12 @@ workflow {
     sim_files_segments = parameter_segments_channel | map { nmuts, nsamples, coverage, seed, segments ->
         segments_id             = "n${nmuts}_s${nsamples}_c${coverage}_r${seed}_k${segments}"
         segments_prefix         = "${params.simulation_dir}/n${nmuts}_s${nsamples}_c${coverage}_r${seed}"
-        segments_freq_matrix    = "${prefix}/sim_frequency_matrix.txt"
-        segments_total_matrix   = "${prefix}/sim_total_matrix.txt"
-        segments_variant_matrix = "${prefix}/sim_variant_matrix.txt"
-        segments_tree           = "${prefix}/sim_tree.txt"
-        segments_usage_matrix   = "${prefix}/sim_usage_matrix.txt"
-        segments_variant_matrix = "${prefix}/sim_variant_matrix.txt"
+        segments_freq_matrix    = "${segments_prefix}/sim_frequency_matrix.txt"
+        segments_total_matrix   = "${segments_prefix}/sim_total_matrix.txt"
+        segments_variant_matrix = "${segments_prefix}/sim_variant_matrix.txt"
+        segments_tree           = "${segments_prefix}/sim_tree.txt"
+        segments_usage_matrix   = "${segments_prefix}/sim_usage_matrix.txt"
+        segments_variant_matrix = "${segments_prefix}/sim_variant_matrix.txt"
         [segments_variant_matrix, segments_total_matrix, segments_tree, segments, segments_id]
     }
 
@@ -112,24 +112,28 @@ workflow {
         [variant_matrix, total_matrix, tree, id]
     }
 
-    gurobi_res = sim_files_segments | regress_binom_gurobi
+    sim_files_segments_gurobi = sim_files_segments
+    gurobi_res = sim_files_segments_gurobi | regress_binom_gurobi
     gurobi_res | map { result, timing, name ->
       result.moveTo("${params.output_dir}/${name}_gurobi_results.json")
       timing.moveTo("${params.output_dir}/${name}_gurobi_timing.txt")
     }
 
-    cvxopt_res = sim_files | regress_binom_cvxopt
+    sim_files_cvxopt = sim_files
+    cvxopt_res = sim_files_cvxopt | regress_binom_cvxopt
     cvxopt_res | map { result, timing, name ->
       result.moveTo("${params.output_dir}/${name}_cvxopt_results.json")
       timing.moveTo("${params.output_dir}/${name}_cvxopt_timing.txt")
     }
 
-    fastppm_binomial_res = sim_files | regress_binom_fastppm_binomial
+    sim_files_fastppm_binomial = sim_files
+    fastppm_binomial_res = sim_files_fastppm_binomial | regress_binom_fastppm_binomial
     fastppm_binomial_res | map { result, timing, name ->
       result.moveTo("${params.output_dir}/${name}_fastppm_results.json")
       timing.moveTo("${params.output_dir}/${name}_fastppm_timing.txt")
     }
 
+    sim_files_segments_fastppm_binomial = sim_files_segments
     fastppm_binomial_res = sim_files_segments | regress_binom_fastppm_binomial_K
     fastppm_binomial_res | map { result, timing, name ->
       result.moveTo("${params.output_dir}/${name}_fastppm_results.json")
