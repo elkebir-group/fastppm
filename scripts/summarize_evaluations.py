@@ -47,7 +47,7 @@ def load_files(directory):
                     adj_list[int(i)].append(int(j))
     
                 try:
-                    res = fastppm.regress(adj_list, variant_matrix.tolist(), total_matrix.tolist(), loss_function='binomial')
+                    res = fastppm.regress_counts(adj_list, variant_matrix.tolist(), total_matrix.tolist(), loss_function='binomial')
                     negative_log_likelihood = res['objective']
                 except:
                     print('Error in', algorithm, subdir)

@@ -26,7 +26,7 @@ add_subdirectory(extern/argparse)
 add_subdirectory(extern/json)
 add_subdirectory(extern/pybind11)
 
-
 # compile the project
 project(fastppm VERSION 1.0)
+add_subdirectory(include/)
 add_subdirectory(src/)

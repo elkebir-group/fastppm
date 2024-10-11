@@ -7,6 +7,13 @@ import networkx as nx
 
 from scipy.stats import poisson, binom
 
+def clonal_tree_citup_pprint(T, root=0):
+    treestr = "["
+    for child in T[root]:
+        treestr += clonal_tree_citup_pprint(T, child)
+    treestr += "]"
+    return treestr
+
 def rand_int(rng, a, b):
     return rng.integers(a, b+1)
 
@@ -234,11 +241,16 @@ def main():
     np.savetxt(f'{args.output}_clonal_matrix.txt', clonal_matrix, fmt='%d')
     np.savetxt(f'{args.output}_usage_matrix.txt', usage_matrix, fmt='%.4f')
     np.savetxt(f'{args.output}_frequency_matrix.txt', f_hat, fmt='%.4f')
+    np.savetxt(f'{args.output}_frequency_matrix_transpose.txt', f_hat.T, fmt='%.4f')
     np.savetxt(f'{args.output}_variant_matrix.txt', collapsed_variant_matrix, fmt='%d')
     np.savetxt(f'{args.output}_total_matrix.txt', collapsed_total_matrix, fmt='%d')
     np.savetxt(f'{args.output}_weight_matrix.txt', weight_matrix, fmt='%d')
 
     nx.write_adjlist(tree, f'{args.output}_tree.txt')
+    
+    citup_tree_string = clonal_tree_citup_pprint(tree)
+    with open(f'{args.output}_citup_tree.txt', 'w') as f:
+        f.write(citup_tree_string)
     
 if __name__ == "__main__":
     main()
