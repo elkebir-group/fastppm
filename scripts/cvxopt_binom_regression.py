@@ -2,6 +2,7 @@ import sys
 import time
 import argparse
 import numpy as np
+import json
 from cvxopt import solvers, matrix, spdiag, log, spmatrix, mul, div
 
 def mll(V,R,children,init_values=None):
@@ -106,5 +107,5 @@ if __name__ == '__main__':
 
     F = [ [res_solver["x"][i*n+mut] for mut in range(n)] for i in range(m)]
 
-    results = {"obj":obj, "F":F, "time":runtime}
-    print(results)
+    results = {"objective":obj, "frequency_matrix":F, "runtime":runtime}
+    print(json.dumps(results))

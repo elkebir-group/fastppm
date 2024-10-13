@@ -1,4 +1,5 @@
 import sys
+import json
 import time
 import gurobipy as gp
 from gurobipy import GRB
@@ -131,5 +132,5 @@ if __name__ == "__main__":
     obj,F = mll(var,ref,tree,env,int(sys.argv[4]))
     runtime = (time.time()-time_start)*1000
             
-    results = {"obj":-obj, "F":F.tolist(), "time":runtime}
-    print(results)
+    results = {"objective":-obj, "frequency_matrix":F.tolist(), "runtime":runtime}
+    print(json.dumps(results))
