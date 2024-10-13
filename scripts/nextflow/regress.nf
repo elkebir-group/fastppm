@@ -11,8 +11,8 @@ params.gurobi_command     = "${params.proj_dir}/scripts/gurobi_lp_binom_regressi
 params.time_command       = "/usr/bin/time -v"
 
 params.nmutations  = [100, 500, 1000] //, 2500]
-params.nsamples    = [3]
-params.seeds       = 1..10
+params.nsamples    = [50]
+params.seeds       = 1..20
 params.coverage    = [30, 100, 1000]
 params.nsegments   = [100, 1000] //, 10000]
 
@@ -91,7 +91,7 @@ process regress_binom_fastppm_binomial_K {
         tuple path("output.json"), path("timing.txt"), val(id)
 
     """
-    ${params.time_command} '${params.fastppm_command}' -K ${segments} -l binomial -v ${variant_matrix} -d ${total_matrix} -t ${clone_tree} -o output.json 2>> timing.txt
+    ${params.time_command} '${params.fastppm_command}' -K ${segments} -l binomial_K -v ${variant_matrix} -d ${total_matrix} -t ${clone_tree} -o output.json 2>> timing.txt
     """
 }
 
@@ -157,9 +157,9 @@ workflow {
 
     /* Select required files and run methods. */
     simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_fastppm_binomial_K
-    simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_gurobi
-    simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_cvxopt
-    simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_fastppm_binomial
-    simulations | map { [it[0], it[3], it[4], it[6]] } | regress_l2_projection 
-    simulations | map { [it[0], it[1], it[2], it[4], it[6]] } | regress_l2_fastppm 
+    // simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_gurobi
+    // simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_cvxopt
+    // simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_fastppm_binomial
+    // simulations | map { [it[0], it[3], it[4], it[6]] } | regress_l2_projection 
+    // simulations | map { [it[0], it[1], it[2], it[4], it[6]] } | regress_l2_fastppm 
 }
