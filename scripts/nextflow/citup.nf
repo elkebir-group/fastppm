@@ -7,10 +7,12 @@ params.citup_iter   = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/citupenv/bi
 params.citup_input_script = "${params.proj_dir}/scripts/processing/make_citup_input.py"
 params.citup_parse_output = "${params.proj_dir}/scripts/processing/parse_citup_output.py"
 
-params.nmutations = [3, 5] //, 10]
-params.nsamples   = [1, 3, 5]
+params.citup_star = "${params.proj_dir}/dependencies/citup-star/citup/run_citup_iter.py"
+
+params.nmutations = [3, 5, 10]
+params.nsamples   = [3, 5]
 params.coverage   = [30, 100, 1000]
-params.seeds      = 1..5            // 20
+params.seeds      = 1..10            // 20
 
 process citup_star {
     cpus 16
@@ -26,6 +28,10 @@ process citup_star {
         tuple path("results.hd5"), path("tree.txt"), path("timing.txt"), val(id)
         
     """
+    export PATH=/n/fs/ragr-research/projects/fastppm/dependencies/citup-star/src:$PATH
+    /usr/bin/time -v ${params.python} ${params.citup_star} ${freq_matrix} results.hd5 \
+                  --loglevel INFO --maxjobs 16 --min_nodes ${clones} --max_nodes ${clones} --submit local 2> timing.txt
+    '${params.python}' '${params.citup_parse_output}' results.hd5 > tree.txt
     """
 }
 
@@ -69,6 +75,6 @@ workflow {
         [freq_matrix_T, nmuts, id]
     }
 
-    // sim_files | orchard
     sim_files | citup
+    sim_files | citup_star
 }
