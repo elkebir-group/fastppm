@@ -37,24 +37,22 @@ public:
         result.c0 = c0 + other.c0;
         result.m0 = m0 + other.m0;
 
-        std::vector<double> merged_breakpoints;
-        std::vector<double> merged_slopes;
+        std::vector<double> merged_breakpoints(breakpoints.size() + other.breakpoints.size());
+        std::vector<double> merged_slopes(slopes.size() + other.slopes.size());
 
-        merged_breakpoints.reserve(breakpoints.size() + other.breakpoints.size());
-        merged_slopes.reserve(slopes.size() + other.slopes.size());
-
-        for (size_t i = 0, j = 0; i < breakpoints.size() || j < other.breakpoints.size();) {
+        size_t l = 0;
+        for (size_t i = 0, j = 0; i < breakpoints.size() || j < other.breakpoints.size(); l++) {
             if (j == other.breakpoints.size() || (i != breakpoints.size() && breakpoints[i] < other.breakpoints[j])) {
-                merged_breakpoints.push_back(breakpoints[i]);
+                merged_breakpoints[l] = breakpoints[i];
                 i++;
             } else if (i == breakpoints.size() || (j != other.breakpoints.size() && breakpoints[i] > other.breakpoints[j])) {
-                merged_breakpoints.push_back(other.breakpoints[j]);
+                merged_breakpoints[l] = other.breakpoints[j];
                 j++;
             } else {
                 if (i == breakpoints.size()) {
-                    merged_breakpoints.push_back(other.breakpoints[j]);
+                    merged_breakpoints[l] = other.breakpoints[j];
                 } else {
-                    merged_breakpoints.push_back(breakpoints[i]);
+                    merged_breakpoints[l] = breakpoints[i];
                 }
 
                 i++;
@@ -74,7 +72,7 @@ public:
                 slope += other.slopes[j - 1];
             }
 
-            merged_slopes.push_back(slope);
+            merged_slopes[l] = slope;
         }
 
         result.breakpoints = std::move(merged_breakpoints);
@@ -161,13 +159,13 @@ public:
             zs[i] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
         }
 
-        std::vector<double> new_breakpoints;
-        new_breakpoints.push_back(x);
+        std::vector<double> new_breakpoints(breakpoints.size() + 1 - l);
+        new_breakpoints[0] = x;
         for (size_t i = l; i < breakpoints.size(); i++) {
-            new_breakpoints.push_back(zs[i]);
+            new_breakpoints[i - l + 1] = zs[i];
         }
 
-        std::vector<double> new_slopes;
+        std::vector<double> new_slopes(new_breakpoints.size());
         for (size_t i = 0; i < new_breakpoints.size(); i++) {
             double slope;
             if (i + l == 0) {
@@ -176,7 +174,7 @@ public:
                 slope = slopes[i + l - 1];
             }
 
-            new_slopes.push_back(-(slope / (2*weight*slope - 1)));
+            new_slopes[i] = -(slope / (2*weight*slope - 1));
         }
         
         double new_m0 = -half_weight_inv;
@@ -204,7 +202,7 @@ public:
         return result;
     }
 
-    double compute_argmin(double gamma, double frequency, double weight) {
+    double compute_argmin(double gamma, double frequency, double weight) const {
         // compute intercepts of the pieces of the derivative, using continuity
         std::vector<double> cs = get_derivative_intercepts();
         double half_weight_inv = 1.0 / (2.0 * weight);

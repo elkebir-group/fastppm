@@ -18,6 +18,7 @@ namespace L2Solver {
             int root;
         
             std::unordered_map<int, std::vector<PiecewiseQuadraticF>> fs;
+            std::unordered_map<int, std::vector<PiecewiseQuadraticF>> gs;
             std::vector<std::vector<double>> alphas;
 
             /* Backtracks to compute the dual 

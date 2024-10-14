@@ -7,8 +7,8 @@
 namespace L2Solver {
     void Solver::solve() {
         size_t nrows = frequency_matrix.size();
-
-        fs = forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
+        
+        forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs);
 
         double obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -46,12 +46,7 @@ namespace L2Solver {
 
             auto children = clone_tree.successors(vertex_map.at(i));
 
-            PiecewiseQuadraticF g;
-            for (auto k : children) { // k is in vertex coordinates
-                PiecewiseQuadraticF f = fs[k][j];
-                g = g + f;
-                stack.push(clone_tree[k].data); // push k in column coordinates
-            }
+            PiecewiseQuadraticF g = gs[i][j];
 
             double gamma; 
             if (i == root) {
