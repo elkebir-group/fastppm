@@ -40,7 +40,7 @@ public:
         std::vector<double> merged_breakpoints(breakpoints.size() + other.breakpoints.size());
         std::vector<double> merged_slopes(slopes.size() + other.slopes.size());
 
-        size_t l = 0;
+        size_t l = 0, h = 0;
         for (size_t i = 0, j = 0; i < breakpoints.size() || j < other.breakpoints.size(); l++) {
             if (j == other.breakpoints.size() || (i != breakpoints.size() && breakpoints[i] < other.breakpoints[j])) {
                 merged_breakpoints[l] = breakpoints[i];
@@ -57,6 +57,7 @@ public:
 
                 i++;
                 j++;
+                h++;
             }
 
             double slope = 0;
@@ -75,6 +76,8 @@ public:
             merged_slopes[l] = slope;
         }
 
+        merged_breakpoints.resize(merged_breakpoints.size() - h);
+        merged_slopes.resize(merged_slopes.size() - h);
         result.breakpoints = std::move(merged_breakpoints);
         result.slopes = std::move(merged_slopes);
         return result;
@@ -91,46 +94,43 @@ public:
         return cs; 
     }
 
-    std::vector<double> evaluate_at_breakpoints() const {
-        std::vector<double> cs = get_derivative_intercepts(); 
-
-        // evaluate at all breakpoints, find interval that contains 0.0 and start there
-        size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
-
-        std::vector<double> values(breakpoints.size() + 1);
-        if (l == 0) {
-            values[l] = f0 + c0 * breakpoints[l] + 0.5 * m0 * (breakpoints[l] * breakpoints[l]);
-        } else {
-            values[l] = f0 + (cs[l - 1] - slopes[l - 1] * breakpoints[l - 1]) * (breakpoints[l]) + 0.5 * slopes[l - 1] * (breakpoints[l] * breakpoints[l]);
-        }
-
-        for (size_t i = l + 1; i < breakpoints.size(); i++) {
-            values[i] = values[i - 1];
-            values[i] += (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-            values[i] += 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
-        }
-
-        for (size_t i = l; i > 0; i--) {
-            values[i - 1] = values[i];
-            values[i - 1] -= (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-            values[i - 1] -= 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
-        }
-
-        return values;
-    }
-
-    // runs in O(k) time
     double operator()(double x) const {
         // the above can all be done in O(k) time and precomputed
         std::vector<double> cs = get_derivative_intercepts();
-        std::vector<double> values = evaluate_at_breakpoints();
 
-        // now we find the piece that x is in
-        size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), x) - breakpoints.begin();
+        // first we find which piece x and 0.0 are within
+        size_t k = std::lower_bound(breakpoints.begin(), breakpoints.end(), x) - breakpoints.begin();
+        size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
+
+        // set value at the breakpoint containing 0.0
+        double value;
         if (l == 0) {
-            return values[0] + (c0 * (x - breakpoints[0]) + 0.5 * m0 * (x * x - breakpoints[0] * breakpoints[0]));
+            value = f0 + c0 * breakpoints[l] + 0.5 * m0 * (breakpoints[l] * breakpoints[l]);
         } else {
-            return values[l - 1] + (cs[l - 1] - slopes[l - 1] * breakpoints[l - 1]) * (x - breakpoints[l - 1]) + 0.5 * slopes[l - 1] * (x * x - breakpoints[l - 1] * breakpoints[l - 1]);
+            value = f0 + (cs[l - 1] - slopes[l - 1] * breakpoints[l - 1]) * (breakpoints[l]) + 0.5 * slopes[l - 1] * (breakpoints[l] * breakpoints[l]);
+        }
+
+        // compute value at the breakpoint containing x
+        if (k > l) {
+            for (size_t i = l + 1; i < k; i++) {
+                value += (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
+                value += 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
+            }
+        }
+
+        if (k <= l) {
+            for (size_t i = l; i >= k; i--) {
+                value -= (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
+                value -= 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
+                if (i == 0) break;
+            }
+        }
+
+        // compute value at x
+        if (k == 0) {
+            return value + (c0 * (x - breakpoints[0]) + 0.5 * m0 * (x * x - breakpoints[0] * breakpoints[0]));
+        } else {
+            return value + (cs[k - 1] - slopes[k - 1] * breakpoints[k - 1]) * (x - breakpoints[k - 1]) + 0.5 * slopes[k - 1] * (x * x - breakpoints[k - 1] * breakpoints[k - 1]);
         }
     }
 

@@ -195,6 +195,7 @@ int main(int argc, char ** argv) {
     output["objective"] = result.objective;
     output["runtime"] = result.runtime;
 
+    std::cout << "Objective: " << result.objective << std::endl;
     float rounding_factor = 1e5;
     if (result.usage_matrix.has_value()) {
         for (size_t i = 0; i < result.usage_matrix.value().size(); i++) {
