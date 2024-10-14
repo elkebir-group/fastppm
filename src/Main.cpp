@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/fmt/ostr.h>
-#include <nlohmann/json.hpp>
+#include <yyjson.h>
 
 #define FASTPPM_VERSION_MAJOR 1
 #define FASTPPM_VERSION_MINOR 0
@@ -175,58 +175,89 @@ int main(int argc, char ** argv) {
 
     // vertex_map : takes the vertex ID in the adjacency list to the vertex ID in the digraph
     auto [clone_tree, vertex_map] = parse_adjacency_list(program.get<std::string>("tree"));
-    size_t root = program.get<int>("-r");
+    size_t tree_root = program.get<int>("-r");
     size_t nr_segments = program.get<int>("-K");
 
     SolverResult result;
     if (program.get<std::string>("-l") == "binomial") {
-        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, nr_segments);
+        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
     } else if (program.get<std::string>("-l") == "binomial_K") {
-        result = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root, nr_segments);
+        result = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
     } else if (program.get<std::string>("-l") == "l2") {
-            result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, root);
+            result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, tree_root);
     } else {
         error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);
     }
 
     // Write the output to a JSON file
-    nlohmann::json output;
-    output["objective"] = result.objective;
-    output["runtime"] = result.runtime;
+    std::ofstream output_file(program.get<std::string>("-o"));
 
-    std::cout << "Objective: " << result.objective << std::endl;
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    yyjson_mut_doc_set_root(doc, root);
+
+    yyjson_mut_obj_add_real(doc, root, "objective", result.objective);
+    yyjson_mut_obj_add_real(doc, root, "runtime", result.runtime);
+
     float rounding_factor = 1e5;
-    if (result.usage_matrix.has_value()) {
-        for (size_t i = 0; i < result.usage_matrix.value().size(); i++) {
-            for (size_t j = 0; j < result.usage_matrix.value()[i].size(); j++) {
-                result.usage_matrix.value()[i][j] = std::round(result.usage_matrix.value()[i][j] * rounding_factor) / rounding_factor;
 
-                if (result.usage_matrix.value()[i][j] == 0 && std::signbit(result.usage_matrix.value()[i][j])) { 
-                    result.usage_matrix.value()[i][j] = 0;
+    if (result.usage_matrix.has_value()) {
+        auto &usage_matrix = result.usage_matrix.value();
+        for (size_t i = 0; i < usage_matrix.size(); i++) {
+            for (size_t j = 0; j < usage_matrix[i].size(); j++) {
+                usage_matrix[i][j] = std::round(usage_matrix[i][j] * rounding_factor) / rounding_factor;
+
+                if (usage_matrix[i][j] == 0 && std::signbit(usage_matrix[i][j])) {
+                    usage_matrix[i][j] = 0;
                 }
             }
         }
 
-        output["usage_matrix"] = result.usage_matrix.value();
+        yyjson_mut_val *usage_matrix_json = yyjson_mut_arr(doc);
+        for (size_t i = 0; i < usage_matrix.size(); i++) {
+            yyjson_mut_val *row_json = yyjson_mut_arr(doc);
+            for (size_t j = 0; j < usage_matrix[i].size(); j++) {
+                yyjson_mut_arr_add_real(doc, row_json, usage_matrix[i][j]);
+            }
+            yyjson_mut_arr_add_val(usage_matrix_json, row_json);
+        }
+        yyjson_mut_obj_add_val(doc, root, "usage_matrix", usage_matrix_json);
     }
 
     if (result.frequency_matrix.has_value()) {
-        for (size_t i = 0; i < result.frequency_matrix.value().size(); i++) {
-            for (size_t j = 0; j < result.frequency_matrix.value()[i].size(); j++) {
-                result.frequency_matrix.value()[i][j] = std::round(result.frequency_matrix.value()[i][j] * rounding_factor) / rounding_factor;
+        auto &frequency_matrix = result.frequency_matrix.value();
+        for (size_t i = 0; i < frequency_matrix.size(); i++) {
+            for (size_t j = 0; j < frequency_matrix[i].size(); j++) {
+                frequency_matrix[i][j] = std::round(frequency_matrix[i][j] * rounding_factor) / rounding_factor;
 
-                if (result.frequency_matrix.value()[i][j] == 0 && std::signbit(result.frequency_matrix.value()[i][j])) { 
-                    result.frequency_matrix.value()[i][j] = 0;
+                if (frequency_matrix[i][j] == 0 && std::signbit(frequency_matrix[i][j])) {
+                    frequency_matrix[i][j] = 0;
                 }
             }
         }
 
-        output["frequency_matrix"] = result.frequency_matrix.value();
+        yyjson_mut_val *frequency_matrix_json = yyjson_mut_arr(doc);
+        for (size_t i = 0; i < frequency_matrix.size(); i++) {
+            yyjson_mut_val *row_json = yyjson_mut_arr(doc);
+            for (size_t j = 0; j < frequency_matrix[i].size(); j++) {
+                yyjson_mut_arr_add_real(doc, row_json, frequency_matrix[i][j]);
+            }
+            yyjson_mut_arr_add_val(frequency_matrix_json, row_json);
+        }
+        yyjson_mut_obj_add_val(doc, root, "frequency_matrix", frequency_matrix_json);
     }
 
-    std::ofstream output_file(program.get<std::string>("-o"));
-    output_file << output.dump();
+    size_t len;
+    char *json_str = yyjson_mut_write(doc, 0, &len);
 
+    if (json_str) {
+        output_file.write(json_str, len);
+        free(json_str);
+    } else {
+        std::cerr << "Failed to serialize JSON document." << std::endl;
+    }
+
+    yyjson_mut_doc_free(doc);
     return 0;
 }

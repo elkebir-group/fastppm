@@ -8,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -pg --coverage")
+set(CMAKE_CXX_FLAGS_DEBUG "-g --coverage")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
 
 # turn off JSON library tests
@@ -23,7 +23,7 @@ add_subdirectory(extern/spdlog)
 add_subdirectory(extern/pprint)
 add_subdirectory(extern/csv-parser)
 add_subdirectory(extern/argparse)
-add_subdirectory(extern/json)
+add_subdirectory(extern/yyjson)
 add_subdirectory(extern/pybind11)
 
 # compile the project

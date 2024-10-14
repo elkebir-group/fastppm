@@ -14,9 +14,9 @@
 [submodule "extern/googletest"]
 	path = extern/googletest
 	url = git@github.com:google/googletest.git
-[submodule "extern/json"]
-	path = extern/json
-	url = git@github.com:nlohmann/json.git
 [submodule "extern/pprint"]
 	path = extern/pprint
 	url = git@github.com:p-ranav/pprint.git
+[submodule "extern/yyjson"]
+	path = extern/yyjson
+	url = git@github.com:ibireme/yyjson.git

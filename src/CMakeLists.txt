@@ -14,7 +14,7 @@ add_library(fastppm-lib STATIC
 
 # add libraries to the executable
 target_link_libraries(fastppm-lib PRIVATE
-    nlohmann_json::nlohmann_json
+    yyjson
     pprint
     spdlog
     csv
@@ -27,13 +27,13 @@ target_include_directories(fastppm-lib PUBLIC
 
 # Build the fastppm CLI
 add_executable(fastppm-cli
-  Main.cpp
+    Main.cpp
 )
 
 target_link_libraries(fastppm-cli PRIVATE
     fastppm-lib
     argparse
-    nlohmann_json::nlohmann_json
+    yyjson
     pprint
     spdlog
     csv
@@ -48,7 +48,7 @@ pybind11_add_module(
 # add libraries to the python bindings
 target_link_libraries(fastppm PRIVATE
     fastppm-lib
-    nlohmann_json::nlohmann_json
+    yyjson
     pprint
     spdlog
     csv
