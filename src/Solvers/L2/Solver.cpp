@@ -46,7 +46,10 @@ namespace L2Solver {
 
             auto children = clone_tree.successors(vertex_map.at(i));
 
-            PiecewiseQuadraticF g = gs[i][j];
+            PiecewiseQuadraticF g = gs[vertex_map.at(i)][j];
+            for (auto k : children) {
+                stack.push(clone_tree[k].data);
+            }
 
             double gamma; 
             if (i == root) {
