@@ -25,17 +25,17 @@ inline bool operator < (const priority_queue_helper & a, const priority_queue_he
 
 void State::base_case(const step_base * dual_ptr) {
     const Dual & dual (*(Dual *) dual_ptr);
-//    k = binary_search_less(dual.x, dual.k - 1, 0.);
-    k = std::upper_bound(dual.x.begin(),dual.x.begin()+dual.k - 1,0.) - dual.x.begin();
-    if (k>=dual.k-1) y[0] = dual.y[k-1] - dual.x[k-1] * dual.slope[k];
-    else y[0] = dual.y[k] - dual.x[k] * dual.slope[k];
+    k = binary_search_less(dual.x, dual.k - 1, 0.);
+//    k = std::upper_bound(dual.x.begin(),dual.x.begin()+dual.k - 1,0.) - dual.x.begin();
+    if (k>=dual.k-1) y[0] = dual.y.at(k-1) - dual.x.at(k-1) * dual.slope.at(k);
+    else y[0] = dual.y.at(k) - dual.x.at(k) * dual.slope.at(k);
     x[0] = 0;
     for (int i = 0; i < k; i++){
-        x[i+1] = -dual.x[k - i - 1];
-        y[i+1] = dual.y[k - i - 1];
+        x[i+1] = -dual.x.at(k - i - 1);
+        y[i+1] = dual.y.at(k - i - 1);
     }
     for (int i = 0; i <= k; i++){
-        slope[i] = -dual.slope[k - i];
+        slope[i] = -dual.slope.at(k - i);
     }
     k++;
 }
@@ -87,7 +87,7 @@ void State::optimize_with(const sum_base *sum_func_ptr, const step_base * dual_p
 #ifdef _DEBUG
     assert (dual.slope.at(dual.k-1) + sum_func.slope.at(sum_func.k-1) < assert_eps); // note 1;
 #endif
-    if (dual.slope[0] + sum_func.slope.at(0) <= Compare_eps ){ //note 2; decreasing always, easy
+    if (dual.slope.at(0) + sum_func.slope.at(0) <= Compare_eps ){ //note 2; decreasing always, easy
         base_case(dual_ptr);
         for (int i = 0; i < k; i++) {
             y[i] += sum_func.y.at(0);
@@ -98,42 +98,42 @@ void State::optimize_with(const sum_base *sum_func_ptr, const step_base * dual_p
     //increase and then decrease over a_i
     k = 0;
     int dual_idx = 0, sum_idx = sum_func.k-1;
-    if (dual.slope[dual_idx] + sum_func.slope.at(sum_idx) <= 0){ //0 cnt
-        while (dual.slope[dual_idx] + sum_func.slope.at(sum_idx-1) <= 0) { // will stop because of note 2
+    if (dual.slope.at(dual_idx) + sum_func.slope.at(sum_idx) <= 0){ //0 cnt
+        while (dual.slope.at(dual_idx) + sum_func.slope.at(sum_idx-1) <= 0) { // will stop because of note 2
             sum_idx--;
         }
     } else {
-        while (dual.slope[dual_idx + 1] + sum_func.slope.at(sum_idx) > 0) {// will stop because of note 1
+        while (dual.slope.at(dual_idx + 1) + sum_func.slope.at(sum_idx) > 0) {// will stop because of note 1
             //printf("%.6lf\n",dual.slope.at(dual_idx + 1) + sum_func.slope.at(sum_idx));
             dual_idx++;
         }
     }
 
     //slope last
-    if (dual.slope[dual_idx] + sum_func.slope.at(sum_idx) <= 0){
-        slope[0] = -dual.slope[dual_idx];
+    if (dual.slope.at(dual_idx) + sum_func.slope.at(sum_idx) <= 0){
+        slope[0] = -dual.slope.at(dual_idx);
     } else {
         slope[0] = sum_func.slope.at(sum_idx);
     }
 
-    if (sum_func.x.at(sum_idx) - dual.x[dual_idx] <= 0){
-        x[0] = sum_func.x.at(sum_idx) - dual.x[dual_idx];
-        y[0] = dual.y[dual_idx] + sum_func.y.at(sum_idx);
+    if (sum_func.x.at(sum_idx) - dual.x.at(dual_idx) <= 0){
+        x[0] = sum_func.x.at(sum_idx) - dual.x.at(dual_idx);
+        y[0] = dual.y.at(dual_idx) + sum_func.y.at(sum_idx);
         y[0] = y[0] + (0 - x[0]) * slope[0];
         x[0] = 0;
     }
     else {
-        while (dual_idx < dual.k-1 && sum_func.x.at(sum_idx) - dual.x[dual_idx] > 0) { //sumidx >=0
-            x[k] = sum_func.x.at(sum_idx) - dual.x[dual_idx];
-            y[k] = sum_func.y.at(sum_idx) + dual.y[dual_idx];
+        while (dual_idx < dual.k-1 && sum_func.x.at(sum_idx) - dual.x.at(dual_idx) > 0) { //sumidx >=0
+            x[k] = sum_func.x.at(sum_idx) - dual.x.at(dual_idx);
+            y[k] = sum_func.y.at(sum_idx) + dual.y.at(dual_idx);
             //real
             k++;
-            if (sum_idx >= 1 && dual.slope[dual_idx + 1] + sum_func.slope.at(sum_idx - 1) <= 0) {
+            if (sum_idx >= 1 && dual.slope.at(dual_idx + 1) + sum_func.slope.at(sum_idx - 1) <= 0) {
                 sum_idx--;
                 slope[k] = sum_func.slope.at(sum_idx);
             } else {
                 dual_idx++;
-                slope[k] = -dual.slope[dual_idx];
+                slope[k] = -dual.slope.at(dual_idx);
             }
         }
 
@@ -153,23 +153,23 @@ real State::backtrace(const step_base *dual_ptr, real val) const {
     int sum_idx = 0, pwl_idx = 0, tot_index = 0;
     real _x;
     while (sum_idx < k && pwl_idx < dual.k - 1) {
-        _x = dual.x[pwl_idx] + val;
+        _x = dual.x.at(pwl_idx) + val;
         if (_x < 0) {
             pwl_idx++;
             continue;
         }
         if (x.at(sum_idx) == _x) {
             helper_x[tot_index] = _x;
-            helper_y[tot_index] = y.at(sum_idx) + dual.y[pwl_idx];
+            helper_y[tot_index] = y.at(sum_idx) + dual.y.at(pwl_idx);
             pwl_idx++;
             sum_idx++;
         } else if (x.at(sum_idx) < _x) {
             helper_x[tot_index] = x.at(sum_idx);
-            helper_y[tot_index] = y.at(sum_idx) + dual.y[pwl_idx] + (x.at(sum_idx) - _x) * dual.slope[pwl_idx];
+            helper_y[tot_index] = y.at(sum_idx) + dual.y.at(pwl_idx) + (x.at(sum_idx) - _x) * dual.slope.at(pwl_idx);
             sum_idx++;
         } else {
             helper_x[tot_index] = _x;
-            helper_y[tot_index] = dual.y[pwl_idx] + y.at(sum_idx) + (_x - x.at(sum_idx)) * slope.at(sum_idx - 1);
+            helper_y[tot_index] = dual.y.at(pwl_idx) + y.at(sum_idx) + (_x - x.at(sum_idx)) * slope.at(sum_idx - 1);
             pwl_idx++;
         }
         tot_index++;
@@ -177,14 +177,14 @@ real State::backtrace(const step_base *dual_ptr, real val) const {
     while (sum_idx < k) {
         helper_x[tot_index] = x.at(sum_idx);
         helper_y[tot_index] =
-                y.at(sum_idx) + dual.y[dual.k - 2] + (x.at(sum_idx) - dual.x[dual.k - 2] - val) * dual.slope[dual.k - 1];
+                y.at(sum_idx) + dual.y.at(dual.k - 2) + (x.at(sum_idx) - dual.x.at(dual.k - 2) - val) * dual.slope.at(dual.k - 1);
         sum_idx++;
         tot_index++;
     }
     while (pwl_idx < dual.k - 1) {
-        _x = dual.x[pwl_idx] + val;
+        _x = dual.x.at(pwl_idx) + val;
         helper_x[tot_index] = _x;
-        helper_y[tot_index] = dual.y[pwl_idx] + y.at(k - 1) + (_x - x.at(k - 1)) * slope.at(k - 1);
+        helper_y[tot_index] = dual.y.at(pwl_idx) + y.at(k - 1) + (_x - x.at(k - 1)) * slope.at(k - 1);
         pwl_idx++;
         tot_index++;
     }

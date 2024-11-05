@@ -60,13 +60,13 @@ SolverResult log_binomial_fixed_solve(
 
     auto start = std::chrono::high_resolution_clock::now();
     double objective = 0;
-    LogBinomialPiecewiseLinearSolver::Solver solver(K);
     for (size_t i = 0; i < variant_matrix.size(); i++) {
         std::vector<int> ref_vector(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
             ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
         }
 
+        LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve(1e-4);
 
@@ -106,13 +106,13 @@ SolverResult log_binomial_solve(
 
     auto start = std::chrono::high_resolution_clock::now();
     double objective = 0;
-    LogBinomialPiecewiseLinearSolver::Solver solver(K);
     for (size_t i = 0; i < variant_matrix.size(); i++) {
         std::vector<int> ref_vector(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
             ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
         }
 
+        LogBinomialPiecewiseLinearSolver::Solver solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve_iteratively(0.75, 1e-4); // TODO: make these parameters configurable
         

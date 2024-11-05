@@ -13,9 +13,9 @@ class Primal;
 class Dual:public step_base{//x not bounded. // dual function
 public:
     int k; // n of intervals;
-    std::vector<real> x;
-    std::vector<real> y;
-    std::vector<real> slope;
+    std::unordered_map<int, real> x;
+    std::unordered_map<int, real> y;
+    std::unordered_map<int, real> slope;
 
     void dual_from_primal(const Primal & primal);
 

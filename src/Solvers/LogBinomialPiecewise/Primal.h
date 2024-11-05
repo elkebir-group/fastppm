@@ -13,9 +13,9 @@ namespace LogBinomialPiecewiseLinearSolver {
 class Primal {// x Bounded on both end. //primal function
 public:
     int k; // n of intervals;
-    std::vector<real> x;
-    std::vector<real> y;
-    std::vector<real> slope;
+    std::unordered_map<int, real> x;
+    std::unordered_map<int, real> y;
+    std::unordered_map<int, real> slope;
 
     void update(real begin, real end, int _k, func_base * func);
 

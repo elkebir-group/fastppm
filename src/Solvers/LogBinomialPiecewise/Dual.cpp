@@ -8,18 +8,12 @@
 namespace LogBinomialPiecewiseLinearSolver {
 void Dual::dual_from_primal(const Primal &primal) {
     k = primal.k + 1;
-    if (k > slope.size()){
-        slope.resize(k);
-        x.resize(k-1);
-        y.resize(k-1);
-    }
-
     for (int i = 0; i < k - 1; i++) {
-        x[i] = primal.slope[i];
-        y[i] = primal.y[i] - primal.slope[i] * primal.x[i];
+        x[i] = primal.slope.at(i);
+        y[i] = primal.y.at(i) - primal.slope.at(i) * primal.x.at(i);
     }
     for (int i = 0; i < k; i++) {
-        slope[i] = -primal.x[i];
+        slope[i] = -primal.x.at(i);
     }
 }
 
