@@ -112,7 +112,7 @@ int main(int argc, char ** argv) {
 
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
-        .default_value("binomial")
+        .default_value("l2")
         .choices("l1", "l2", "binomial", "binomial_K");
 
     program.add_argument("-K", "--segments")
