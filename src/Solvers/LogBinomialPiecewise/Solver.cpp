@@ -68,7 +68,7 @@ real Solver::solve(real eps) {
      T.dfs(T.root);
      ans = answer();
 
-     T.dfs_BT(T.root, dual_0)
+     T.dfs_BT(T.root, dual_0);
      solve_F();
      return ans;
 }

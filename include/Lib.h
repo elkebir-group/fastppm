@@ -19,15 +19,15 @@
 struct SolverResult {
     double runtime;
     double objective;
-    std::optional<std::vector<std::vector<double>>> usage_matrix;
-    std::optional<std::vector<std::vector<double>>> frequency_matrix;
+    std::optional<std::vector<std::vector<float>>> usage_matrix;
+    std::optional<std::vector<std::vector<float>>> frequency_matrix;
 };
 
 SolverResult l2_solve(
     const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
-    const std::vector<std::vector<double>>& weight_matrix,
+    const std::vector<std::vector<float>>& weight_matrix,
     const digraph<int>& clone_tree,
     size_t root
 );

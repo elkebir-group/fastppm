@@ -10,12 +10,12 @@ namespace L2Solver {
         
         forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs);
 
-        double obj = 0;
+        float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
             PiecewiseQuadraticF f = fs[vertex_map.at(root)][j];
-            std::vector<double> cs = f.get_derivative_intercepts();
+            std::vector<float> cs = f.get_derivative_intercepts();
 
-            double alpha_0 = 0.0;
+            float alpha_0 = 0.0;
             size_t i = 0;
             for (i = 0; i < cs.size();) {
                 if (cs[i] - 1 <= 0) break; 
@@ -28,7 +28,7 @@ namespace L2Solver {
                 alpha_0 = (1.0 - cs[i - 1]) / f.slopes[i - 1] + f.breakpoints[i - 1];
             }
 
-            alpha_0 = std::max(0.0, alpha_0);
+            alpha_0 = std::max(0.0f, alpha_0);
             obj += f(alpha_0) - alpha_0;
             backtrack(alpha_0, j);
         }
@@ -36,7 +36,7 @@ namespace L2Solver {
         this->objective = obj;
     }
 
-    void Solver::backtrack(double alpha_0, int j) {
+    void Solver::backtrack(float alpha_0, int j) {
         std::stack<int> stack;
         stack.push(root); // root is in column coordinates
 
@@ -51,7 +51,7 @@ namespace L2Solver {
                 stack.push(clone_tree[k].data);
             }
 
-            double gamma; 
+            float gamma; 
             if (i == root) {
                 gamma = alpha_0;
             } else {
@@ -59,12 +59,12 @@ namespace L2Solver {
                 gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
             }
 
-            double freq = frequency_matrix[j][i];
-            double weight = weight_matrix[j][i];
+            float freq = frequency_matrix[j][i];
+            float weight = weight_matrix[j][i];
 
-            double alpha;
+            float alpha;
             if (children.size() == 0) {
-                alpha = std::max(0.0, gamma - 2.0 * weight * freq);
+                alpha = std::max(0.0f, gamma - 2.0f * weight * freq);
             } else {
                 alpha = g.compute_argmin(gamma, freq, weight);
             }

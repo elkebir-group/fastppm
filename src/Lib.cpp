@@ -16,15 +16,15 @@ SolverResult l2_solve(
     const std::unordered_map<int, int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
-    const std::vector<std::vector<double>>& weight_matrix,
+    const std::vector<std::vector<float>>& weight_matrix,
     const digraph<int>& clone_tree,
     size_t root
 ) {
-    std::vector<std::vector<double>> frequency_matrix;
+    std::vector<std::vector<float>> frequency_matrix;
     for (size_t i = 0; i < variant_matrix.size(); i++) {
-        std::vector<double> frequencies;
+        std::vector<float> frequencies;
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
-            double freq = total_matrix[i][j] == 0 ? 0 : static_cast<double>(variant_matrix[i][j]) / total_matrix[i][j];
+            float freq = total_matrix[i][j] == 0 ? 0 : static_cast<float>(variant_matrix[i][j]) / total_matrix[i][j];
             frequencies.push_back(freq);
         }
         frequency_matrix.push_back(frequencies);
@@ -56,7 +56,7 @@ SolverResult log_binomial_fixed_solve(
         link_list[clone_tree[u].data].push_back(clone_tree[v].data);
     }
 
-    std::vector<std::vector<double>> frequency_matrix;
+    std::vector<std::vector<float>> frequency_matrix;
 
     auto start = std::chrono::high_resolution_clock::now();
     double objective = 0;
@@ -70,7 +70,7 @@ SolverResult log_binomial_fixed_solve(
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve(1e-4);
 
-        std::vector<double> frequencies(variant_matrix[i].size(), 0);
+        std::vector<float> frequencies(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
             frequencies[j] = solver.F[j];
         }
@@ -102,10 +102,10 @@ SolverResult log_binomial_solve(
         link_list[clone_tree[u].data].push_back(clone_tree[v].data);
     }
 
-    std::vector<std::vector<double>> frequency_matrix;
+    std::vector<std::vector<float>> frequency_matrix;
 
     auto start = std::chrono::high_resolution_clock::now();
-    double objective = 0;
+    float objective = 0;
     for (size_t i = 0; i < variant_matrix.size(); i++) {
         std::vector<int> ref_vector(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
@@ -116,7 +116,7 @@ SolverResult log_binomial_solve(
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve_iteratively(0.75, 1e-4); // TODO: make these parameters configurable
         
-        std::vector<double> frequencies(variant_matrix[i].size(), 0);
+        std::vector<float> frequencies(variant_matrix[i].size(), 0);
         for (size_t j = 0; j < variant_matrix[i].size(); j++) {
             frequencies[j] = solver.F[j];
         }

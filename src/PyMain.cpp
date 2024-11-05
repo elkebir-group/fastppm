@@ -10,8 +10,8 @@ namespace py = pybind11;
 
 py::dict regress_frequencies(
     const std::vector<std::vector<int>>& adjacency_list,
-    const std::vector<std::vector<double>> &frequency_matrix, 
-    const std::optional<std::vector<std::vector<double>>>& weight_matrix,
+    const std::vector<std::vector<float>> &frequency_matrix, 
+    const std::optional<std::vector<std::vector<float>>>& weight_matrix,
     std::optional<int> root,
     const std::string loss_function
 ) {
@@ -46,7 +46,7 @@ py::dict regress_frequencies(
         }
     }
 
-    std::vector<std::vector<double>> weight_matrix_value(frequency_matrix.size(), std::vector<double>(frequency_matrix[0].size(), 1.0));
+    std::vector<std::vector<float>> weight_matrix_value(frequency_matrix.size(), std::vector<float>(frequency_matrix[0].size(), 1.0));
     if (weight_matrix.has_value()) {
         weight_matrix_value = weight_matrix.value();
     }
@@ -84,7 +84,7 @@ py::dict regress_read_counts(
     const std::vector<std::vector<int>>& adjacency_list,
     const std::vector<std::vector<int>> &variant_matrix, 
     const std::vector<std::vector<int>> &total_matrix, 
-    const std::optional<std::vector<std::vector<double>>>& weight_matrix,
+    const std::optional<std::vector<std::vector<float>>>& weight_matrix,
     std::optional<int> root,
     const std::string loss_function,
     int nr_segments
@@ -132,7 +132,7 @@ py::dict regress_read_counts(
         }
     }
 
-    std::vector<std::vector<double>> weight_matrix_value(variant_matrix.size(), std::vector<double>(variant_matrix[0].size(), 1.0));
+    std::vector<std::vector<float>> weight_matrix_value(variant_matrix.size(), std::vector<float>(variant_matrix[0].size(), 1.0));
     if (weight_matrix.has_value()) {
         weight_matrix_value = weight_matrix.value();
     }

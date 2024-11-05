@@ -153,9 +153,9 @@ int main(int argc, char ** argv) {
         }
     }
 
-    std::vector<std::vector<double>> weights(variant_matrix.size(), std::vector<double>(variant_matrix[0].size(), 1.0));
+    std::vector<std::vector<float>> weights(variant_matrix.size(), std::vector<float>(variant_matrix[0].size(), 1.0));
     if (!program.get<std::string>("-w").empty()) {
-        weights = parse_matrix<double>(program.get<std::string>("-w"));
+        weights = parse_matrix<float>(program.get<std::string>("-w"));
         if (weights.size() != variant_matrix.size()) {
             error_logger->error("The weights matrix has different number of rows than the variant read matrix.");
             std::exit(1);

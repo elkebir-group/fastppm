@@ -40,12 +40,12 @@ inline std::vector<int> postorder_dfs(const digraph<int>& clone_tree, int root) 
  * B is the n-clonal matrix B corresponding to T in 
  * O(mn) time where F is m x n.
  */
-inline std::vector<std::vector<double>> left_inverse(
+inline std::vector<std::vector<float>> left_inverse(
     const digraph<int>& clone_tree,
     const std::unordered_map<int, int>& vertex_map,
-    const std::vector<std::vector<double>>& frequency_matrix
+    const std::vector<std::vector<float>>& frequency_matrix
 ) {
-    std::vector<std::vector<double>> usage_matrix = frequency_matrix;
+    std::vector<std::vector<float>> usage_matrix = frequency_matrix;
     for (size_t j = 0; j < frequency_matrix.size(); j++) {
         for (size_t i = 0; i < frequency_matrix[j].size(); i++) {
             for (auto child : clone_tree.successors(vertex_map.at(i))) {
@@ -62,16 +62,16 @@ inline std::vector<std::vector<double>> left_inverse(
  * n-clonal matrix B corresponding to T in O(mn) 
  * time where F is m x n.
  */
-inline std::vector<std::vector<double>> left_multiply(
+inline std::vector<std::vector<float>> left_multiply(
     const digraph<int>& clone_tree,
     int root,
     const std::unordered_map<int, int>& vertex_map,
-    const std::vector<std::vector<double>>& frequency_matrix
+    const std::vector<std::vector<float>>& frequency_matrix
 ) {
     // root is in column coordinates
     auto postorder = postorder_dfs(clone_tree, vertex_map.at(root));
 
-    std::vector<std::vector<double>> result = frequency_matrix;
+    std::vector<std::vector<float>> result = frequency_matrix;
     for (auto i : postorder) {
         int k = clone_tree[i].data;
         for (auto child : clone_tree.successors(i)) {

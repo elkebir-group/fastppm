@@ -12,11 +12,11 @@
  * abstract tree structured dual dynamic programming algorithm.
  * 
  * Requires the following methods to be defined for Representation:
- * - Representation::Representation(double frequency) 
+ * - Representation::Representation(float frequency) 
  *      Computes J_i(.) for a leaf vertex.
  * - Representation Representation::operator+(const Representation& other)
  *      Adds J_i(.) and J_k(.) for two children vertices.
- * - Representation Representation::update_representation(double frequency)
+ * - Representation Representation::update_representation(float frequency)
  *      Computes J_i(.) <- min_{h_i(var, total) + J_i(.)} for 
  *      a vertex with a given frequency. 
  */
@@ -24,8 +24,8 @@ template <typename Representation>
 void forward_solve(
     digraph<int>& clone_tree, 
     const std::unordered_map<int, int>& vertex_map, 
-    const std::vector<std::vector<double>>& frequency_matrix, 
-    const std::vector<std::vector<double>>& weight_matrix, 
+    const std::vector<std::vector<float>>& frequency_matrix, 
+    const std::vector<std::vector<float>>& weight_matrix, 
     int root,
     std::unordered_map<int, std::vector<Representation>>& fs,
     std::unordered_map<int, std::vector<Representation>>& gs
