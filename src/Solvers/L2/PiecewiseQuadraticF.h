@@ -119,10 +119,9 @@ public:
         }
 
         if (k <= l) {
-            for (size_t i = l; i >= k; i--) {
+            for (size_t i = l; i >= k && i > 0; i--) {
                 value -= (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
                 value -= 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
-                if (i == 0) break;
             }
         }
 

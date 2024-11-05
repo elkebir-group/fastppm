@@ -105,6 +105,11 @@ int main(int argc, char ** argv) {
         .default_value(0)
         .scan<'d', int>();
 
+    program.add_argument("-f", "--format")
+        .help("Output format, either 'concise' or 'verbose'")
+        .default_value("concise")
+        .choices("concise", "verbose");
+
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
         .default_value("binomial")
@@ -202,7 +207,9 @@ int main(int argc, char ** argv) {
 
     float rounding_factor = 1e5;
 
-    if (result.usage_matrix.has_value()) {
+    bool verbose = program.get<std::string>("-f") == "verbose";
+
+    if (verbose && result.usage_matrix.has_value()) {
         auto &usage_matrix = result.usage_matrix.value();
         for (size_t i = 0; i < usage_matrix.size(); i++) {
             for (size_t j = 0; j < usage_matrix[i].size(); j++) {
@@ -225,7 +232,7 @@ int main(int argc, char ** argv) {
         yyjson_mut_obj_add_val(doc, root, "usage_matrix", usage_matrix_json);
     }
 
-    if (result.frequency_matrix.has_value()) {
+    if (verbose && result.frequency_matrix.has_value()) {
         auto &frequency_matrix = result.frequency_matrix.value();
         for (size_t i = 0; i < frequency_matrix.size(); i++) {
             for (size_t j = 0; j < frequency_matrix[i].size(); j++) {
