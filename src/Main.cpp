@@ -179,17 +179,29 @@ int main(int argc, char ** argv) {
     }
 
     // vertex_map : takes the vertex ID in the adjacency list to the vertex ID in the digraph
+    int ncols = variant_matrix[0].size();
     auto [clone_tree, vertex_map] = parse_adjacency_list(program.get<std::string>("tree"));
+    std::vector<int> vertex_map_vector(vertex_map.size());
+    for (const auto& [key, value] : vertex_map) {
+        if (key >= ncols) {
+            error_logger->error("The nodes must range from 0, 1, ..., {} as {} is the number of columns in the input matrix.", ncols - 1, ncols);
+            error_logger->error("The node {} is out of bounds.", key);
+            std::exit(1);
+        }
+
+        vertex_map_vector[key] = value;
+    }
+
     size_t tree_root = program.get<int>("-r");
     size_t nr_segments = program.get<int>("-K");
 
     SolverResult result;
     if (program.get<std::string>("-l") == "binomial") {
-        result = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
+        result = log_binomial_solve(vertex_map_vector, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
     } else if (program.get<std::string>("-l") == "binomial_K") {
-        result = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
+        result = log_binomial_fixed_solve(vertex_map_vector, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
     } else if (program.get<std::string>("-l") == "l2") {
-            result = l2_solve(vertex_map, variant_matrix, total_matrix, weights, clone_tree, tree_root);
+            result = l2_solve(vertex_map_vector, variant_matrix, total_matrix, weights, clone_tree, tree_root);
     } else {
         error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);

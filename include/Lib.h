@@ -24,7 +24,7 @@ struct SolverResult {
 };
 
 SolverResult l2_solve(
-    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
     const std::vector<std::vector<float>>& weight_matrix,
@@ -33,7 +33,7 @@ SolverResult l2_solve(
 );
 
 SolverResult log_binomial_solve(
-    const std::unordered_map<int, int>& vertex_map,
+    const std::vector<int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
     const std::vector<std::vector<int>>& total_matrix,
     const digraph<int>& clone_tree,
@@ -42,12 +42,12 @@ SolverResult log_binomial_solve(
 );
 
 SolverResult log_binomial_fixed_solve(
-        const std::unordered_map<int, int>& vertex_map,
-        const std::vector<std::vector<int>>& variant_matrix,
-        const std::vector<std::vector<int>>& total_matrix,
-        const digraph<int>& clone_tree,
-        size_t root,
-        int K
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root,
+    int K
 );
 
 #endif

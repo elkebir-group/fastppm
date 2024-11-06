@@ -12,13 +12,13 @@ namespace L2Solver {
     class Solver {
         private:
             digraph<int> clone_tree;
-            std::unordered_map<int, int> vertex_map;
+            std::vector<int> vertex_map;
             std::vector<std::vector<float>> frequency_matrix;
             std::vector<std::vector<float>> weight_matrix;
             int root;
         
-            std::unordered_map<int, PiecewiseQuadraticF> fs;
-            std::unordered_map<int, PiecewiseQuadraticF> gs;
+            std::vector<PiecewiseQuadraticF> fs;
+            std::vector<PiecewiseQuadraticF> gs;
             std::vector<std::vector<float>> alphas;
 
             /* Backtracks to compute the dual 
@@ -30,11 +30,14 @@ namespace L2Solver {
 
             Solver(
                 digraph<int> clone_tree, 
-                std::unordered_map<int, int> vertex_map, 
+                std::vector<int> vertex_map, 
                 std::vector<std::vector<float>> frequency_matrix, 
                 std::vector<std::vector<float>> weight_matrix,
                 int root
             ) : clone_tree(clone_tree), vertex_map(vertex_map), root(root) {
+                fs.resize(frequency_matrix[0].size());
+                gs.resize(frequency_matrix[0].size());
+
                 this->frequency_matrix.reserve(frequency_matrix.size());
                 for (size_t i = 0; i < frequency_matrix.size(); i++) {
                     this->frequency_matrix.push_back(std::vector<float>(frequency_matrix[i].begin(), frequency_matrix[i].end()));

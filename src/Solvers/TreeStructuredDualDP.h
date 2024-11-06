@@ -23,12 +23,12 @@
 template <typename Representation>
 void forward_solve(
     digraph<int>& clone_tree, 
-    const std::unordered_map<int, int>& vertex_map, 
+    const std::vector<int>& vertex_map, 
     const std::vector<std::vector<float>>& frequency_matrix, 
     const std::vector<std::vector<float>>& weight_matrix, 
     int root,
-    std::unordered_map<int, Representation>& fs,
-    std::unordered_map<int, Representation>& gs,
+    std::vector<Representation>& fs,
+    std::vector<Representation>& gs,
     size_t j
 ) {
     size_t ncols = frequency_matrix[0].size();
@@ -41,18 +41,18 @@ void forward_solve(
         int i = call_stack.top();
         call_stack.pop();
 
-        if (visited[vertex_map.at(i)]) continue;
+        if (visited[vertex_map[i]]) continue;
 
         // If leaf, compute Representation and return.
-        if (clone_tree.out_degree(vertex_map.at(i)) == 0) {
-            fs[vertex_map.at(i)] = std::move(Representation(frequency_matrix[j][i], weight_matrix[j][i]));
-            visited[vertex_map.at(i)] = true;
+        if (clone_tree.out_degree(vertex_map[i]) == 0) {
+            fs[vertex_map[i]] = std::move(Representation(frequency_matrix[j][i], weight_matrix[j][i]));
+            visited[vertex_map[i]] = true;
             continue;
         }
 
         // Recurse at children. 
         bool all_children_valid = true; 
-        for (auto k : clone_tree.successors(vertex_map.at(i))) {
+        for (auto k : clone_tree.successors(vertex_map[i])) {
             if (!visited[k]) {
                 if (all_children_valid) {
                     call_stack.push(i);
@@ -66,15 +66,15 @@ void forward_solve(
         if (!all_children_valid) continue;
 
         Representation g;
-        for (auto k : clone_tree.successors(vertex_map.at(i))) {
+        for (auto k : clone_tree.successors(vertex_map[i])) {
             const Representation& f = fs[k];
             g = std::move(g + f); 
         }
 
-        fs[vertex_map.at(i)] = std::move(g.update_representation(frequency_matrix[j][i], weight_matrix[j][i]));
-        gs[vertex_map.at(i)] = std::move(g);
+        fs[vertex_map[i]] = std::move(g.update_representation(frequency_matrix[j][i], weight_matrix[j][i]));
+        gs[vertex_map[i]] = std::move(g);
 
-        visited[vertex_map.at(i)] = true;
+        visited[vertex_map[i]] = true;
     }
 }
 

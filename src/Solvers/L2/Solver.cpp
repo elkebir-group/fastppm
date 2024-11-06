@@ -11,7 +11,7 @@ namespace L2Solver {
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
             forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
-            const PiecewiseQuadraticF& f = fs[vertex_map.at(root)];
+            const PiecewiseQuadraticF& f = fs[vertex_map[root]];
             const std::vector<float> cs = f.get_derivative_intercepts();
 
             float alpha_0 = 0.0;
@@ -43,9 +43,9 @@ namespace L2Solver {
             int i = stack.top(); // i is in column coordinates
             stack.pop();
 
-            const auto& children = clone_tree.successors(vertex_map.at(i));
+            const auto& children = clone_tree.successors(vertex_map[i]);
 
-            const PiecewiseQuadraticF& g = gs[vertex_map.at(i)];
+            const PiecewiseQuadraticF& g = gs[vertex_map[i]];
             for (auto k : children) {
                 stack.push(clone_tree[k].data);
             }
@@ -54,7 +54,7 @@ namespace L2Solver {
             if (i == root) {
                 gamma = alpha_0;
             } else {
-                int p = clone_tree.predecessors(vertex_map.at(i))[0]; // convert i to vertex coordinates, then get the parent
+                int p = clone_tree.predecessors(vertex_map[i])[0]; // convert i to vertex coordinates, then get the parent
                 gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
             }
 

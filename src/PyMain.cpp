@@ -15,7 +15,7 @@ py::dict regress_frequencies(
     std::optional<int> root,
     const std::string loss_function
 ) {
-    std::unordered_map<int, int> vertex_map;
+    std::vector<int> vertex_map(adjacency_list.size());
     digraph<int> clone_tree;
     for (size_t i = 0; i < adjacency_list.size(); i++) {
         vertex_map[i] = clone_tree.add_vertex(i);
@@ -101,7 +101,7 @@ py::dict regress_read_counts(
         throw std::invalid_argument("variant_matrix and total_matrix must have the same number of columns");
     }
 
-    std::unordered_map<int, int> vertex_map;
+    std::vector<int> vertex_map(adjacency_list.size());
     digraph<int> clone_tree;
     for (size_t i = 0; i < adjacency_list.size(); i++) {
         vertex_map[i] = clone_tree.add_vertex(i);
