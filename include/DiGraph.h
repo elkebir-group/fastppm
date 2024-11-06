@@ -36,13 +36,12 @@ private:
 
     std::vector<std::vector<int>> succ;
     std::vector<std::vector<int>> pred;
-
-    std::unordered_map<int, vertex<T>> vertices;
+    std::vector<vertex<T>> vertices;
 public:
     // returns id of created vertex
     int add_vertex(T data) {
         vertex<T> v(id_counter, data);
-        vertices[v.id] = v;
+        vertices.push_back(v);
         succ.push_back(std::vector<int>());
         pred.push_back(std::vector<int>());
         id_counter++;
@@ -73,11 +72,11 @@ public:
     }
 
     vertex<T>& operator[](int u) {
-        return vertices.at(u);
+        return vertices[u];
     }
 
     const vertex<T>& operator[](int u) const {
-        return vertices.at(u);
+        return vertices[u];
     }
 
     const std::vector<int>& predecessors(int u) const {
