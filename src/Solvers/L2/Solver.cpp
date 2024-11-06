@@ -8,11 +8,10 @@ namespace L2Solver {
     void Solver::solve() {
         size_t nrows = frequency_matrix.size();
         
-        forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs);
-
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
-            const PiecewiseQuadraticF& f = fs[vertex_map.at(root)][j];
+            forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
+            const PiecewiseQuadraticF& f = fs[vertex_map.at(root)];
             const std::vector<float> cs = f.get_derivative_intercepts();
 
             float alpha_0 = 0.0;
@@ -46,7 +45,7 @@ namespace L2Solver {
 
             const auto& children = clone_tree.successors(vertex_map.at(i));
 
-            const PiecewiseQuadraticF& g = gs[vertex_map.at(i)][j];
+            const PiecewiseQuadraticF& g = gs[vertex_map.at(i)];
             for (auto k : children) {
                 stack.push(clone_tree[k].data);
             }

@@ -217,7 +217,7 @@ public:
 
             // remove duplicate slopes or breakpoints
             if (i > 0) {
-                if ((new_breakpoint - new_breakpoints[i - num_duplicates - 1] < 1e-9f) && (new_breakpoint - new_breakpoints[i - num_duplicates - 1] > -1e-9f)) {
+                if ((new_breakpoint - new_breakpoints[i - num_duplicates - 1] < 1e-8f) && (new_breakpoint - new_breakpoints[i - num_duplicates - 1] > -1e-8f)) {
                     num_duplicates++;
                 } else if ((new_slope - new_slopes[i - num_duplicates - 1] < 1e-9f) && (new_slope - new_slopes[i - num_duplicates - 1] > -1e-9f)) {
                     num_duplicates++;

@@ -17,8 +17,8 @@ namespace L2Solver {
             std::vector<std::vector<float>> weight_matrix;
             int root;
         
-            std::unordered_map<int, std::vector<PiecewiseQuadraticF>> fs;
-            std::unordered_map<int, std::vector<PiecewiseQuadraticF>> gs;
+            std::unordered_map<int, PiecewiseQuadraticF> fs;
+            std::unordered_map<int, PiecewiseQuadraticF> gs;
             std::vector<std::vector<float>> alphas;
 
             /* Backtracks to compute the dual 
