@@ -1,5 +1,6 @@
 #include "Lib.h"
 
+#include <cstdlib>
 #include <vector>
 #include <argparse/argparse.hpp>
 #include <spdlog/spdlog.h>
@@ -25,35 +26,64 @@
 */
 template <typename T>
 std::vector<std::vector<T>> parse_matrix(const std::string& filename) {
-    std::ifstream file(filename);
-
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open the file.");
     }
+    
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-    std::vector<std::vector<T>> matrix;
-    std::string line;
-    size_t num_cols = 0;
-
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::vector<T> row;
-        T value;
-
-        while (iss >> value) {
-            row.push_back(value);
-        }
-
-        if (matrix.empty()) {
-            num_cols = row.size();
-        } else if (row.size() != num_cols) {
-            throw std::runtime_error("The file does not represent a matrix. Number of columns is not consistent across rows.");
-        }
-
-        matrix.push_back(row);
+    std::string buffer(size, ' ');
+    if (!file.read(&buffer[0], size)) {
+        throw std::runtime_error("Failed to read the file into memory.");
     }
 
     file.close();
+
+    std::vector<std::vector<T>> matrix;
+    std::vector<T> row;
+    const char* ptr = buffer.c_str();
+    const char* end = ptr + size;
+    size_t num_cols = 0;
+
+    while (ptr < end) {
+        while (ptr < end && std::isspace(*ptr)) {
+            if (*ptr == '\n' || *ptr == '\r') {
+                if (!row.empty()) {
+                    if (matrix.empty()) {
+                        num_cols = row.size();
+                    } else if (row.size() != num_cols) {
+                        throw std::runtime_error("Inconsistent row sizes in matrix file.");
+                    }
+                    matrix.push_back(std::move(row));
+                    row.clear();
+                }
+            }
+            ++ptr;
+        }
+
+        if (ptr >= end) break;
+
+        char* num_end;
+        if constexpr (std::is_integral_v<T>) {
+            row.push_back(static_cast<T>(strtol(ptr, &num_end, 10)));
+        } else if constexpr (std::is_floating_point_v<T>) {
+            row.push_back(static_cast<T>(strtod(ptr, &num_end)));
+        }
+
+        ptr = num_end;
+    }
+
+    if (!row.empty()) {
+        if (matrix.empty()) {
+            num_cols = row.size();
+        } else if (row.size() != num_cols) {
+            throw std::runtime_error("Inconsistent row sizes in matrix file.");
+        }
+        matrix.push_back(std::move(row));
+    }
+
     return matrix;
 }
 

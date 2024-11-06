@@ -33,27 +33,8 @@ public:
           slopes(other.slopes) {
     }
 
-    PiecewiseQuadraticF& operator=(const PiecewiseQuadraticF& other) {
-        if (this != &other) {
-            f0 = other.f0;
-            c0 = other.c0;
-            m0 = other.m0;
-            slopes = other.slopes;
-            breakpoints = other.breakpoints;
-        }
-        return *this;
-    }
-
-    PiecewiseQuadraticF& operator=(PiecewiseQuadraticF&& other) noexcept {
-        if (this != &other) {
-            f0 = other.f0;
-            c0 = other.c0;
-            m0 = other.m0;
-            slopes = std::move(other.slopes);
-            breakpoints = std::move(other.breakpoints);
-        }
-        return *this;
-    }
+    PiecewiseQuadraticF& operator=(const PiecewiseQuadraticF& other) = default;
+    PiecewiseQuadraticF& operator=(PiecewiseQuadraticF&& other) noexcept = default;
 
     // leaf constructor
     PiecewiseQuadraticF(float frequency, float weight) : 
