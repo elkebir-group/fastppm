@@ -27,6 +27,12 @@ public:
           slopes(std::move(other.slopes)) {
     }
 
+    PiecewiseQuadraticF(const PiecewiseQuadraticF& other) 
+        : f0(other.f0), c0(other.c0), m0(other.m0),
+          breakpoints(other.breakpoints),
+          slopes(other.slopes) {
+    }
+
     PiecewiseQuadraticF& operator=(const PiecewiseQuadraticF& other) {
         if (this != &other) {
             f0 = other.f0;
@@ -55,13 +61,7 @@ public:
       breakpoints(std::vector<float>(1, 2.0f * weight * frequency)), slopes(std::vector<float>(1,0.0f)) 
     {}
 
-    // runs in O(k + k') time
-    PiecewiseQuadraticF operator+(const PiecewiseQuadraticF& other) const {
-        PiecewiseQuadraticF result;
-        result.f0 = f0 + other.f0;
-        result.c0 = c0 + other.c0;
-        result.m0 = m0 + other.m0;
-
+    void addInPlace(const PiecewiseQuadraticF& other) {
         std::vector<float> merged_breakpoints(breakpoints.size() + other.breakpoints.size());
         std::vector<float> merged_slopes(slopes.size() + other.slopes.size());
 
@@ -103,9 +103,12 @@ public:
 
         merged_breakpoints.resize(merged_breakpoints.size() - h);
         merged_slopes.resize(merged_slopes.size() - h);
-        result.breakpoints = std::move(merged_breakpoints);
-        result.slopes = std::move(merged_slopes);
-        return result;
+
+        breakpoints = std::move(merged_breakpoints);
+        slopes = std::move(merged_slopes);
+        f0 = f0 + other.f0;
+        c0 = c0 + other.c0;
+        m0 = m0 + other.m0;
     }
 
     std::vector<float> get_derivative_intercepts() const {

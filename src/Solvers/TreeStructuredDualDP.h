@@ -49,10 +49,11 @@ void forward_solve(
             visited[vertex_map[i]] = true;
             continue;
         }
-
+        
         // Recurse at children. 
+        const auto& children = clone_tree.successors(vertex_map[i]);
         bool all_children_valid = true; 
-        for (auto k : clone_tree.successors(vertex_map[i])) {
+        for (auto k : children) {
             if (!visited[k]) {
                 if (all_children_valid) {
                     call_stack.push(i);
@@ -65,10 +66,10 @@ void forward_solve(
 
         if (!all_children_valid) continue;
 
-        Representation g;
-        for (auto k : clone_tree.successors(vertex_map[i])) {
-            const Representation& f = fs[k];
-            g = std::move(g + f); 
+        Representation g = fs[children[0]];
+        for (size_t k = 1; k < children.size(); k++) {
+            const Representation& f = fs[children[k]];
+            g.addInPlace(f);
         }
 
         fs[vertex_map[i]] = std::move(g.update_representation(frequency_matrix[j][i], weight_matrix[j][i]));
