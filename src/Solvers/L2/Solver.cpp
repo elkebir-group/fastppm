@@ -12,7 +12,7 @@ namespace L2Solver {
 
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
-            PiecewiseQuadraticF f = fs[vertex_map.at(root)][j];
+            const PiecewiseQuadraticF& f = fs[vertex_map.at(root)][j];
             std::vector<float> cs = f.get_derivative_intercepts();
 
             float alpha_0 = 0.0;
@@ -44,9 +44,9 @@ namespace L2Solver {
             int i = stack.top(); // i is in column coordinates
             stack.pop();
 
-            auto children = clone_tree.successors(vertex_map.at(i));
+            const auto& children = clone_tree.successors(vertex_map.at(i));
 
-            PiecewiseQuadraticF g = gs[vertex_map.at(i)][j];
+            const PiecewiseQuadraticF& g = gs[vertex_map.at(i)][j];
             for (auto k : children) {
                 stack.push(clone_tree[k].data);
             }
