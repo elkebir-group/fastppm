@@ -1,4 +1,5 @@
 #include "Lib.h"
+#include "fast_float/fast_float.h"
 
 #include <cstdlib>
 #include <vector>
@@ -65,14 +66,10 @@ std::vector<std::vector<T>> parse_matrix(const std::string& filename) {
 
         if (ptr >= end) break;
 
-        char* num_end;
-        if constexpr (std::is_integral_v<T>) {
-            row.push_back(static_cast<T>(strtol(ptr, &num_end, 10)));
-        } else if constexpr (std::is_floating_point_v<T>) {
-            row.push_back(static_cast<T>(strtod(ptr, &num_end)));
-        }
-
-        ptr = num_end;
+        T value;
+        auto res = fast_float::from_chars(ptr, end, value);
+        row.push_back(value);
+        ptr = res.ptr;
     }
 
     if (!row.empty()) {
