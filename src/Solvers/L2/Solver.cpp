@@ -13,7 +13,7 @@ namespace L2Solver {
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
             const PiecewiseQuadraticF& f = fs[vertex_map.at(root)][j];
-            std::vector<float> cs = f.get_derivative_intercepts();
+            const std::vector<float> cs = f.get_derivative_intercepts();
 
             float alpha_0 = 0.0;
             size_t i = 0;
@@ -29,7 +29,7 @@ namespace L2Solver {
             }
 
             alpha_0 = std::max(0.0f, alpha_0);
-            obj += f(alpha_0) - alpha_0;
+            obj += f(alpha_0, cs) - alpha_0;
             backtrack(alpha_0, j);
         }
 

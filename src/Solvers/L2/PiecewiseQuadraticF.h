@@ -122,18 +122,27 @@ public:
         return cs; 
     }
 
-    float operator()(float x) const {
-        // the above can all be done in O(k) time and precomputed
-        const std::vector<float> &cs = get_derivative_intercepts();
-
+    float operator()(float x, const std::vector<float>& cs) const {
         // first we find which piece x and 0.0 are within
-        size_t k = std::lower_bound(breakpoints.begin(), breakpoints.end(), x) - breakpoints.begin();
-        size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
+        size_t k = 0, l = 0;
+        for (size_t i = 0; i < breakpoints.size(); i++) {
+            if (breakpoints[i] >= x) {
+                k = i;
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < breakpoints.size(); i++) {
+            if (breakpoints[i] >= 0.0f) {
+                l = i;
+                break;
+            }
+        }
 
         // set value at the breakpoint containing 0.0
         float value;
         if (l == 0) {
-            value = f0 + c0 * breakpoints[l] + 0.5 * m0 * (breakpoints[l] * breakpoints[l]);
+            value = f0 + c0 * breakpoints[l] + 0.5f * m0 * (breakpoints[l] * breakpoints[l]);
         } else {
             value = f0 + (cs[l - 1] - slopes[l - 1] * breakpoints[l - 1]) * (breakpoints[l]) + 0.5 * slopes[l - 1] * (breakpoints[l] * breakpoints[l]);
         }
@@ -142,22 +151,22 @@ public:
         if (k > l) {
             for (size_t i = l + 1; i < k; i++) {
                 value += (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-                value += 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
+                value += 0.5f * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
             }
         }
 
         if (k <= l) {
             for (size_t i = l; i >= k && i > 0; i--) {
                 value -= (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-                value -= 0.5 * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
+                value -= 0.5f * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
             }
         }
 
         // compute value at x
         if (k == 0) {
-            return value + (c0 * (x - breakpoints[0]) + 0.5 * m0 * (x * x - breakpoints[0] * breakpoints[0]));
+            return value + (c0 * (x - breakpoints[0]) + 0.5f * m0 * (x * x - breakpoints[0] * breakpoints[0]));
         } else {
-            return value + (cs[k - 1] - slopes[k - 1] * breakpoints[k - 1]) * (x - breakpoints[k - 1]) + 0.5 * slopes[k - 1] * (x * x - breakpoints[k - 1] * breakpoints[k - 1]);
+            return value + (cs[k - 1] - slopes[k - 1] * breakpoints[k - 1]) * (x - breakpoints[k - 1]) + 0.5f * slopes[k - 1] * (x * x - breakpoints[k - 1] * breakpoints[k - 1]);
         }
     }
 
@@ -166,50 +175,73 @@ public:
     // really, this is the meat of the algorithm
     PiecewiseQuadraticF update_representation(float frequency, float weight) const {
         // compute intercepts of the pieces of the derivative, using continuity
-        float half_weight_inv = 1.0 / (2.0 * weight);
+        float half_weight_inv = 1.0f / (2.0f * weight);
 
-        std::vector<float> cs = get_derivative_intercepts();
+        const std::vector<float> cs = get_derivative_intercepts();
 
         // find first breakpoint x such that \alpha_i^*(x) = 0
-        size_t l = std::lower_bound(breakpoints.begin(), breakpoints.end(), 0.0) - breakpoints.begin();
-        float x = 0.0;
+        size_t l = 0;
+        for (size_t i = 0; i < breakpoints.size(); i++) {
+            if (breakpoints[i] > 0.0f) {
+                l = i;
+                break;
+            }
+        }
+
+        float x = 0.0f;
         if (l == 0) {
             x = frequency - c0;
         } else {
             x = frequency + (half_weight_inv * breakpoints[l-1]) - cs[l - 1] + (breakpoints[l-1] * (slopes[l-1] - half_weight_inv));
         }
 
-        x *= 2.0 * weight;
+        x *= 2.0f * weight;
 
         std::vector<float> new_breakpoints(breakpoints.size() + 1 - l);
-        new_breakpoints[0] = x;
-        for (size_t i = l; i < breakpoints.size(); i++) {
-            new_breakpoints[i - l + 1] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
-        }
-
         std::vector<float> new_slopes(new_breakpoints.size());
+        int num_duplicates = 0;
         for (size_t i = 0; i < new_breakpoints.size(); i++) {
-            float slope;
-            if (i + l == 0) {
-                slope = m0;
+            float new_breakpoint;
+            if (i == 0) { 
+                new_breakpoint = x;
             } else {
-                slope = slopes[i + l - 1];
+                new_breakpoint = 2.0f * weight * (frequency - cs[i + l - 1]) + breakpoints[i + l - 1];
             }
 
-            new_slopes[i] = -(slope / (2*weight*slope - 1));
+            float new_slope;
+            if (i + l == 0) {
+                new_slope = -m0 / (2.0f*weight*m0 - 1.0f);
+            } else {
+                new_slope = -(slopes[i + l - 1] / (2.0f*weight*slopes[i + l - 1] - 1.0f));
+            }
+
+            // remove duplicate slopes or breakpoints
+            if (i > 0) {
+                if ((new_breakpoint - new_breakpoints[i - num_duplicates - 1] < 1e-9f) && (new_breakpoint - new_breakpoints[i - num_duplicates - 1] > -1e-9f)) {
+                    num_duplicates++;
+                } else if ((new_slope - new_slopes[i - num_duplicates - 1] < 1e-9f) && (new_slope - new_slopes[i - num_duplicates - 1] > -1e-9f)) {
+                    num_duplicates++;
+                }
+            }
+
+            new_slopes[i - num_duplicates] = new_slope;
+            new_breakpoints[i - num_duplicates] = new_breakpoint;
         }
-        
+
+        new_breakpoints.resize(new_breakpoints.size() - num_duplicates);
+        new_slopes.resize(new_slopes.size() - num_duplicates);
+
         float new_m0 = -half_weight_inv;
         float new_c0 = frequency;
 
         for (size_t i = 0; i < breakpoints.size(); i++) {
-            if (2.0 * weight * (frequency - cs[i]) + breakpoints[i] > 0.0) {
+            if (2.0 * weight * (frequency - cs[i]) + breakpoints[i] > 0.0f) {
                 l = i;
                 break;
             }
         }
 
-        float alpha_star = 0.0;
+        float alpha_star = 0.0f;
 
         if (l == 0) {
             alpha_star = (frequency - c0) / (m0 - half_weight_inv);
@@ -218,36 +250,19 @@ public:
         }
 
         alpha_star = std::max(0.0f, alpha_star);
-        float new_f0 = this->operator()(alpha_star) - (0.5 * half_weight_inv * alpha_star * alpha_star + frequency * alpha_star);
-
-        std::vector<float> deduped_breakpoints(new_breakpoints.size());
-        std::vector<float> deduped_slopes(new_slopes.size());
-        size_t j = 0;
-        for (size_t i = 0; i < new_breakpoints.size(); i++) {
-            if (i == 0 || abs(new_breakpoints[i] - new_breakpoints[i - 1]) > 1e-8) { // to handle floating point errors
-                deduped_breakpoints[j] = new_breakpoints[i];
-                deduped_slopes[j] = new_slopes[i];
-                j++;
-            } else if (j > 0) {
-                deduped_slopes[j - 1] = new_slopes[i];
-            }
-        }
-
-        deduped_breakpoints.resize(j);
-        deduped_slopes.resize(j);
+        float new_f0 = this->operator()(alpha_star, cs) - (0.5f * half_weight_inv * alpha_star * alpha_star + frequency * alpha_star);
 
         PiecewiseQuadraticF result;
         result.f0 = new_f0;
         result.c0 = new_c0;
         result.m0 = new_m0;
-        result.breakpoints = deduped_breakpoints;
-        result.slopes = deduped_slopes;
+        result.breakpoints = std::move(new_breakpoints);
+        result.slopes = std::move(new_slopes);
 
         return result;
     }
 
     float compute_argmin(float gamma, float frequency, float weight) const {
-        // compute intercepts of the pieces of the derivative, using continuity
         float half_weight_inv = 1.0 / (2.0 * weight);
 
         // find first breakpoint x
