@@ -12,8 +12,8 @@ class PiecewiseQuadraticF {
 public:
     // b_0 = -\infty, b_{k+1} = \infty, so are not stored
     float f0, c0, m0; 
-    std::vector<float> slopes;      // m_1 <= ... <= m_k
     std::vector<float> breakpoints; // b_1 <= ... <= b_k
+    std::vector<float> slopes;      // m_1 <= ... <= m_k
 
     PiecewiseQuadraticF() {
         f0 = 0.0;
@@ -23,8 +23,8 @@ public:
 
     PiecewiseQuadraticF(PiecewiseQuadraticF&& other) noexcept
         : f0(other.f0), c0(other.c0), m0(other.m0),
-          slopes(std::move(other.slopes)), 
-          breakpoints(std::move(other.breakpoints)) {
+          breakpoints(std::move(other.breakpoints)),
+          slopes(std::move(other.slopes)) {
     }
 
     PiecewiseQuadraticF& operator=(const PiecewiseQuadraticF& other) {
@@ -50,13 +50,10 @@ public:
     }
 
     // leaf constructor
-    PiecewiseQuadraticF(float frequency, float weight) {
-        breakpoints = {2.0f * weight * frequency};
-        slopes = {0.0f};
-        f0 = 0.0;
-        c0 = frequency;
-        m0 = -1.0/(2.0*weight);
-    }
+    PiecewiseQuadraticF(float frequency, float weight) : 
+      f0(0.0), c0(frequency), m0(-1.0/(2.0*weight)),
+      breakpoints(std::vector<float>(1, 2.0f * weight * frequency)), slopes(std::vector<float>(1,0.0f)) 
+    {}
 
     // runs in O(k + k') time
     PiecewiseQuadraticF operator+(const PiecewiseQuadraticF& other) const {

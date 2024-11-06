@@ -34,8 +34,8 @@ class digraph {
 private:
     int id_counter = 0;
 
-    std::unordered_map<int, std::vector<int>> succ;
-    std::unordered_map<int, std::vector<int>> pred;
+    std::vector<std::vector<int>> succ;
+    std::vector<std::vector<int>> pred;
 
     std::unordered_map<int, vertex<T>> vertices;
 public:
@@ -43,32 +43,15 @@ public:
     int add_vertex(T data) {
         vertex<T> v(id_counter, data);
         vertices[v.id] = v;
-        succ[v.id] = std::vector<int>();
-        pred[v.id] = std::vector<int>();
+        succ.push_back(std::vector<int>());
+        pred.push_back(std::vector<int>());
         id_counter++;
         return v.id;
     }
 
     void add_edge(int u, int v) {
-        // succ[u].insert(v);
-        // pred[v].insert(u);
         succ[u].push_back(v);
         pred[v].push_back(u);
-    }
-
-    void remove_edge(int u, int v) {
-        // succ[u].erase(v);
-        // pred[v].erase(u);
-
-        auto it = std::find(succ[u].begin(), succ[u].end(), v);
-        if (it != succ[u].end()) {
-            succ[u].erase(it);
-        }
-
-        it = std::find(pred[v].begin(), pred[v].end(), u);
-        if (it != pred[v].end()) {
-            pred[v].erase(it);
-        }
     }
 
     std::vector<int> nodes() const {
@@ -81,27 +64,12 @@ public:
 
     std::vector<std::pair<int, int>> edges() const {
         std::vector<std::pair<int, int>> edges;
-        for (const auto &[u, vs] : succ) {
-            for (const auto &v : vs) {
+        for (size_t u = 0; u < succ.size(); u++) {
+            for (const auto &v : succ[u]) {
                 edges.push_back(std::make_pair(u, v));
             }
         }
         return edges;
-    }
-
-    /* TODO
-       WARNING: does not maintain invariant
-       that all edges are between 0 and N.
-     */
-    void delete_vertex(int u) {
-        // removes u and all (v, u) edges
-        vertices.erase(u);
-        for (const vertex<T>& v : pred[u]) {
-            succ[v].erase(u);
-        }
-
-        succ.erase(u);
-        pred.erase(u);
     }
 
     vertex<T>& operator[](int u) {
@@ -113,11 +81,11 @@ public:
     }
 
     const std::vector<int>& predecessors(int u) const {
-        return pred.at(u);
+        return pred[u];
     }
 
     const std::vector<int>& successors(int u) const {
-        return succ.at(u);
+        return succ[u];
     }
 
     bool contains(int u) const {
@@ -125,11 +93,11 @@ public:
     }
 
     size_t in_degree(int u) const {
-        return pred.at(u).size();
+        return pred[u].size();
     }
 
     size_t out_degree(int u) const {
-        return succ.at(u).size();
+        return succ[u].size();
     }
 
     /*
@@ -140,7 +108,7 @@ public:
             return true;
         }
 
-        for (int w : tree.succ.at(u)) {
+        for (int w : tree.succ[u]) {
             if (ancestor(tree, w, v)) {
                 return true;
             }
