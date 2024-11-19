@@ -156,10 +156,8 @@ $ cat examples/sim_total_matrix.txt
 
 To run `fastppm` on the simulated data, we then use the following command:
 ```bash
-$ ./build/src/fastppm-cli -v examples/sim_variant_matrix.txt\ 
-                          -d examples/sim_total_matrix.txt\ 
-                          -t examples/sim_tree.txt\ 
-                          -o examples/fastppm_results.json\
+$ ./build/src/fastppm-cli -v examples/sim_variant_matrix.txt -d examples/sim_total_matrix.txt \
+                          -t examples/sim_tree.txt -o examples/fastppm_results.json \
                           -f verbose -l l2
 ```
 
