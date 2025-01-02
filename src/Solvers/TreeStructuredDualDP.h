@@ -45,7 +45,7 @@ void forward_solve(
 
         // If leaf, compute Representation and return.
         if (clone_tree.out_degree(vertex_map[i]) == 0) {
-            fs[vertex_map[i]] = std::move(Representation(frequency_matrix[j][i], weight_matrix[j][i]));
+            fs[vertex_map[i]].reset_to_leaf(frequency_matrix[j][i], weight_matrix[j][i]);
             visited[vertex_map[i]] = true;
             continue;
         }
@@ -66,15 +66,9 @@ void forward_solve(
 
         if (!all_children_valid) continue;
 
-        Representation g = fs[children[0]];
-        for (size_t k = 1; k < children.size(); k++) {
-            const Representation& f = fs[children[k]];
-            g.addInPlace(f);
-        }
-
-        fs[vertex_map[i]] = std::move(g.update_representation(frequency_matrix[j][i], weight_matrix[j][i]));
-        gs[vertex_map[i]] = std::move(g);
-
+        auto &g = gs[vertex_map[i]];
+        g.sum(children, fs);
+        g.update_representation(frequency_matrix[j][i], weight_matrix[j][i], fs[vertex_map[i]]);
         visited[vertex_map[i]] = true;
     }
 }

@@ -1,6 +1,7 @@
 #ifndef PIECEWISE_QUADRATICF_HPP
 #define PIECEWISE_QUADRATICF_HPP
 
+#include <queue>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -15,81 +16,86 @@ public:
     std::vector<float> breakpoints; // b_1 <= ... <= b_k
     std::vector<float> slopes;      // m_1 <= ... <= m_k
 
-    PiecewiseQuadraticF() {
+    PiecewiseQuadraticF(size_t n) {
         f0 = 0.0;
         c0 = 0.0;
         m0 = 0.0;
+        breakpoints.reserve(n);
+        slopes.reserve(n);
     }
 
-    PiecewiseQuadraticF(PiecewiseQuadraticF&& other) noexcept
-        : f0(other.f0), c0(other.c0), m0(other.m0),
-          breakpoints(std::move(other.breakpoints)),
-          slopes(std::move(other.slopes)) {
+    PiecewiseQuadraticF() = delete;
+
+    void reset_to_leaf(float frequency, float weight) {
+        f0 = 0.0;
+        c0 = frequency;
+        m0 = -1.0 / (2.0 * weight);
+        breakpoints.clear();
+        breakpoints.push_back(2.0f * weight * frequency);
+        slopes.clear();
+        slopes.push_back(0.0f);
     }
 
-    PiecewiseQuadraticF(const PiecewiseQuadraticF& other) 
-        : f0(other.f0), c0(other.c0), m0(other.m0),
-          breakpoints(other.breakpoints),
-          slopes(other.slopes) {
-    }
+    void sum(const std::vector<int>& children, const std::vector<PiecewiseQuadraticF>& fs) {
+        f0 = 0.0f;
+        c0 = 0.0f;
+        m0 = 0.0f;
+        breakpoints.clear();
+        slopes.clear();
 
-    PiecewiseQuadraticF& operator=(const PiecewiseQuadraticF& other) = default;
-    PiecewiseQuadraticF& operator=(PiecewiseQuadraticF&& other) noexcept = default;
-
-    // leaf constructor
-    PiecewiseQuadraticF(float frequency, float weight) : 
-      f0(0.0), c0(frequency), m0(-1.0/(2.0*weight)),
-      breakpoints(std::vector<float>(1, 2.0f * weight * frequency)), slopes(std::vector<float>(1,0.0f)) 
-    {}
-
-    void addInPlace(const PiecewiseQuadraticF& other) {
-        std::vector<float> merged_breakpoints(breakpoints.size() + other.breakpoints.size());
-        std::vector<float> merged_slopes(slopes.size() + other.slopes.size());
-
-        size_t l = 0, h = 0;
-        for (size_t i = 0, j = 0; i < breakpoints.size() || j < other.breakpoints.size(); l++) {
-            if (j == other.breakpoints.size() || (i != breakpoints.size() && breakpoints[i] < other.breakpoints[j])) {
-                merged_breakpoints[l] = breakpoints[i];
-                i++;
-            } else if (i == breakpoints.size() || (j != other.breakpoints.size() && breakpoints[i] > other.breakpoints[j])) {
-                merged_breakpoints[l] = other.breakpoints[j];
-                j++;
-            } else {
-                if (i == breakpoints.size()) {
-                    merged_breakpoints[l] = other.breakpoints[j];
-                } else {
-                    merged_breakpoints[l] = breakpoints[i];
-                }
-
-                i++;
-                j++;
-                h++;
-            }
-
-            float slope = 0;
-            if (i == 0) {
-                slope += m0;
-            } else {
-                slope += slopes[i - 1];
-            }
-
-            if (j == 0) {
-                slope += other.m0;
-            } else {
-                slope += other.slopes[j - 1];
-            }
-
-            merged_slopes[l] = slope;
+        if (children.empty()) return;
+        
+        for (int c : children) {
+            f0 += fs[c].f0;
+            c0 += fs[c].c0;
+            m0 += fs[c].m0;
         }
 
-        merged_breakpoints.resize(merged_breakpoints.size() - h);
-        merged_slopes.resize(merged_slopes.size() - h);
+        using BpChild = std::tuple<float,int,size_t>; // breakpoint, child, index
+        std::priority_queue<BpChild, std::vector<BpChild>, std::greater<BpChild>> pq;
 
-        breakpoints = std::move(merged_breakpoints);
-        slopes = std::move(merged_slopes);
-        f0 = f0 + other.f0;
-        c0 = c0 + other.c0;
-        m0 = m0 + other.m0;
+        float current_slope = m0;
+        for (int c : children) {
+            pq.push({fs[c].breakpoints[0], c, 0});
+        }
+
+        while (!pq.empty()) {
+            auto [bp, c, i] = pq.top();
+            pq.pop();
+
+            if (i == 0) {
+                current_slope -= fs[c].m0;
+            } else {
+                current_slope -= fs[c].slopes[i - 1];
+            }
+          
+            current_slope += fs[c].slopes[i];
+
+            if (i + 1 < fs[c].breakpoints.size()) {
+                pq.push({fs[c].breakpoints[i + 1], c, i + 1});
+            }
+
+            // keep popping until we find a breakpoint that is not the same as bp
+            while (!pq.empty() && std::get<0>(pq.top()) == bp) {
+                auto [bp, c, i] = pq.top();
+                pq.pop();
+
+                if (i == 0) {
+                    current_slope -= fs[c].m0;
+                } else {
+                    current_slope -= fs[c].slopes[i - 1];
+                }
+
+                current_slope += fs[c].slopes[i];
+
+                if (i + 1 < fs[c].breakpoints.size()) {
+                    pq.push({fs[c].breakpoints[i + 1], c, i + 1});
+                }
+            }
+
+            breakpoints.push_back(bp);
+            slopes.push_back(current_slope);
+        }
     }
 
     std::vector<float> get_derivative_intercepts() const {
@@ -154,7 +160,7 @@ public:
     // when F = \sum{j \in \delta(i)}J_j, this updates F to be 
     // J_i(\gamma) = max_{x \geq 0}(h_i(x - \gamma) + F(x))
     // really, this is the meat of the algorithm
-    PiecewiseQuadraticF update_representation(float frequency, float weight) const {
+    void update_representation(float frequency, float weight, PiecewiseQuadraticF& result) const {
         // compute intercepts of the pieces of the derivative, using continuity
         float half_weight_inv = 1.0f / (2.0f * weight);
 
@@ -178,10 +184,10 @@ public:
 
         x *= 2.0f * weight;
 
-        std::vector<float> new_breakpoints(breakpoints.size() + 1 - l);
-        std::vector<float> new_slopes(new_breakpoints.size());
+        result.breakpoints.resize(breakpoints.size() + 1 - l);
+        result.slopes.resize(result.breakpoints.size());
         int num_duplicates = 0;
-        for (size_t i = 0; i < new_breakpoints.size(); i++) {
+        for (size_t i = 0; i < result.breakpoints.size(); i++) {
             float new_breakpoint;
             if (i == 0) { 
                 new_breakpoint = x;
@@ -198,19 +204,19 @@ public:
 
             // remove duplicate slopes or breakpoints
             if (i > 0) {
-                if ((new_breakpoint - new_breakpoints[i - num_duplicates - 1] < 1e-8f) && (new_breakpoint - new_breakpoints[i - num_duplicates - 1] > -1e-8f)) {
+                if ((new_breakpoint - result.breakpoints[i - num_duplicates - 1] < 1e-8f) && (new_breakpoint - result.breakpoints[i - num_duplicates - 1] > -1e-8f)) {
                     num_duplicates++;
-                } else if ((new_slope - new_slopes[i - num_duplicates - 1] < 1e-9f) && (new_slope - new_slopes[i - num_duplicates - 1] > -1e-9f)) {
+                } else if ((new_slope - result.slopes[i - num_duplicates - 1] < 1e-9f) && (new_slope - result.slopes[i - num_duplicates - 1] > -1e-9f)) {
                     num_duplicates++;
                 }
             }
 
-            new_slopes[i - num_duplicates] = new_slope;
-            new_breakpoints[i - num_duplicates] = new_breakpoint;
+            result.slopes[i - num_duplicates] = new_slope;
+            result.breakpoints[i - num_duplicates] = new_breakpoint;
         }
 
-        new_breakpoints.resize(new_breakpoints.size() - num_duplicates);
-        new_slopes.resize(new_slopes.size() - num_duplicates);
+        result.breakpoints.resize(result.breakpoints.size() - num_duplicates);
+        result.slopes.resize(result.slopes.size() - num_duplicates);
 
         float new_m0 = -half_weight_inv;
         float new_c0 = frequency;
@@ -233,14 +239,9 @@ public:
         alpha_star = std::max(0.0f, alpha_star);
         float new_f0 = this->operator()(alpha_star, cs) - (0.5f * half_weight_inv * alpha_star * alpha_star + frequency * alpha_star);
 
-        PiecewiseQuadraticF result;
         result.f0 = new_f0;
         result.c0 = new_c0;
         result.m0 = new_m0;
-        result.breakpoints = std::move(new_breakpoints);
-        result.slopes = std::move(new_slopes);
-
-        return result;
     }
 
     float compute_argmin(float gamma, float frequency, float weight) const {

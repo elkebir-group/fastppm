@@ -7,6 +7,12 @@
 namespace L2Solver {
     void Solver::solve() {
         size_t nrows = frequency_matrix.size();
+        size_t ncols = frequency_matrix[0].size();
+
+        for (size_t i = 0; i < ncols; ++i) {
+            fs.push_back(PiecewiseQuadraticF(ncols + 1));
+            gs.push_back(PiecewiseQuadraticF(ncols + 1));
+        }
         
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
