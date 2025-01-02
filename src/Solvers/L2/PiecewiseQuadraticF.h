@@ -57,8 +57,11 @@ public:
         float current_slope = m0;
         for (int c : children) {
             pq.push({fs[c].breakpoints[0], c, 0});
+            breakpoints.resize(breakpoints.size() + fs[c].breakpoints.size());
+            slopes.resize(slopes.size() + fs[c].slopes.size());
         }
 
+        int added = 0;
         while (!pq.empty()) {
             auto [bp, c, i] = pq.top();
             pq.pop();
@@ -93,9 +96,13 @@ public:
                 }
             }
 
-            breakpoints.push_back(bp);
-            slopes.push_back(current_slope);
+            breakpoints[added] = bp;
+            slopes[added] = current_slope;
+            added++;
         }
+
+        breakpoints.resize(added);
+        slopes.resize(added);
     }
 
     std::vector<float> get_derivative_intercepts() const {
