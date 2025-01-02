@@ -1,6 +1,7 @@
 #ifndef _DIGRAPH_H
 #define _DIGRAPH_H
 
+#include <stack>
 #include <algorithm>
 #include <map>
 #include <unordered_map>
@@ -97,6 +98,49 @@ public:
 
     size_t out_degree(int u) const {
         return succ[u].size();
+    }
+
+    std::vector<int> postorder_traversal(int root) {
+        std::stack<int> call_stack;
+        call_stack.push(root);
+
+        std::vector<int> postorder;
+        std::vector<bool> visited(id_counter, false);
+
+        while(!call_stack.empty()) {
+            int i = call_stack.top();
+            call_stack.pop();
+
+            if (visited[i]) continue;
+
+            // Check if leaf, if so, add to postorder.
+            if (this->out_degree(i) == 0) {
+                visited[i] = true;
+                postorder.push_back(i);
+                continue;
+            }
+
+            // Recurse at children. 
+            const auto& children = this->successors(i);
+            bool all_children_valid = true; 
+            for (auto k : children) {
+              if (!visited[k]) {
+                if (all_children_valid) {
+                  call_stack.push(i);
+                }
+
+                call_stack.push(k);
+                all_children_valid = false;
+              }
+            }
+
+            if (!all_children_valid) continue;
+
+            visited[i] = true;
+            postorder.push_back(i);
+        }
+
+        return postorder;
     }
 
     /*

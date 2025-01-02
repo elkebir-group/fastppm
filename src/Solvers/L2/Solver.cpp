@@ -13,10 +13,12 @@ namespace L2Solver {
             fs.push_back(PiecewiseQuadraticF(ncols + 1));
             gs.push_back(PiecewiseQuadraticF(ncols + 1));
         }
+
+        std::vector<int> postorder = clone_tree.postorder_traversal(vertex_map[root]);
         
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
-            forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
+            forward_solve<PiecewiseQuadraticF>(clone_tree, postorder, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
             const PiecewiseQuadraticF& f = fs[vertex_map[root]];
             const std::vector<float> cs = f.get_derivative_intercepts();
 

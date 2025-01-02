@@ -23,6 +23,7 @@
 template <typename Representation>
 void forward_solve(
     digraph<int>& clone_tree, 
+    const std::vector<int>& post_order, 
     const std::vector<int>& vertex_map, 
     const std::vector<std::vector<float>>& frequency_matrix, 
     const std::vector<std::vector<float>>& weight_matrix, 
@@ -33,43 +34,21 @@ void forward_solve(
 ) {
     size_t ncols = frequency_matrix[0].size();
 
-    std::vector<bool> visited(ncols, false);
 
-    std::stack<int> call_stack; // contains vertices to visit in column coordinates
-    call_stack.push(root);
-    while(!call_stack.empty()) {
-        int i = call_stack.top();
-        call_stack.pop();
-
-        if (visited[vertex_map[i]]) continue;
+    for (auto u : post_order) {
+        int i = clone_tree[u].data;
 
         // If leaf, compute Representation and return.
-        if (clone_tree.out_degree(vertex_map[i]) == 0) {
+        if (clone_tree.out_degree(u) == 0) {
             fs[vertex_map[i]].reset_to_leaf(frequency_matrix[j][i], weight_matrix[j][i]);
-            visited[vertex_map[i]] = true;
             continue;
         }
         
         // Recurse at children. 
-        const auto& children = clone_tree.successors(vertex_map[i]);
-        bool all_children_valid = true; 
-        for (auto k : children) {
-            if (!visited[k]) {
-                if (all_children_valid) {
-                    call_stack.push(i);
-                }
-
-                call_stack.push(clone_tree[k].data);
-                all_children_valid = false;
-            }
-        }
-
-        if (!all_children_valid) continue;
-
-        auto &g = gs[vertex_map[i]];
+        const auto& children = clone_tree.successors(u);
+        auto &g = gs[u];
         g.sum(children, fs);
         g.update_representation(frequency_matrix[j][i], weight_matrix[j][i], fs[vertex_map[i]]);
-        visited[vertex_map[i]] = true;
     }
 }
 
