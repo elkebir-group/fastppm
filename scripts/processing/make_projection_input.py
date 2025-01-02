@@ -10,14 +10,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Make input for PPM projection algorithm.')
     parser.add_argument('tree', type=str, help='Tree file')
     parser.add_argument('frequency_matrix', type=str, help='Frequency matrix file')
-    parser.add_argument('weight_matrix', type=str, help='Weight matrix file')
+    parser.add_argument('--weight_matrix', type=str, help='Weight matrix file')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
     tree = nx.read_adjlist(args.tree, nodetype=int, create_using=nx.DiGraph())
     frequency_matrix = np.loadtxt(args.frequency_matrix)
-    weight_matrix = np.loadtxt(args.weight_matrix)
+    if args.weight_matrix is None:
+        weight_matrix = np.ones(frequency_matrix.shape)
+    else:
+        weight_matrix = np.loadtxt(args.weight_matrix)
 
     if len(frequency_matrix.shape) == 1:
         frequency_matrix = frequency_matrix.reshape(1, -1)

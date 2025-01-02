@@ -1,4 +1,4 @@
-params.simulation_dir       = "/n/fs/ragr-research/projects/fastppm/data/simulations"
+params.simulation_dir       = "/n/fs/ragr-research/projects/fastppm-data/simulations"
 params.orchard_star         = "/n/fs/ragr-research/projects/fastppm/dependencies/orchard-star/bin/orchard"
 params.orchard              = "/n/fs/ragr-research/projects/fastppm/dependencies/orchard/bin/orchard"
 params.create_orchard_input = "/n/fs/ragr-research/projects/fastppm/scripts/processing/make_orchard_input.py"
@@ -12,9 +12,9 @@ params.seeds      = 1..10            // 20
 params.loss       = ["l2"]
 
 process orchard_star {
-    cpus 16
+    cpus 1
     memory '8 GB'
-    time '4h'
+    time '59m'
 
     publishDir "nextflow_results/search/orchard-star-${loss}/${id}", mode: 'copy', overwrite: true
 
@@ -27,13 +27,13 @@ process orchard_star {
     """
     ${params.python} ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
     /usr/bin/time -v ${params.python} ${params.orchard_star} orchard_mutations.ssm orchard_params.json results.npz \
-                  -l ${loss} -k 1 -f 250 -n 16 -p 2> timing.txt
+                  -l ${loss} -k 1 -f 250 -n 1 -p 2> timing.txt
     ${params.python} ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }
 
 process orchard {
-    cpus 16
+    cpus 1
     memory '8 GB'
     time '59m'
 
@@ -47,7 +47,7 @@ process orchard {
         
     """
     python ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
-    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 1 -f 250 -n 16 -p 2> timing.txt
+    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 1 -f 250 -n 1 -p 2> timing.txt
     python ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }
@@ -71,6 +71,6 @@ workflow {
         [id, variant_matrix, total_matrix]
     }
 
-    // sim_files | orchard
+    sim_files | orchard
     sim_files | combine(channel.fromList(params.loss)) | orchard_star
 }

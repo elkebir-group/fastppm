@@ -1,6 +1,6 @@
-params.proj_dir = "/n/fs/ragr-research/projects/fastppm/"
-params.simulation_dir       = "/n/fs/ragr-research/projects/fastppm/data/simulations"
-params.python               = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/breaked/bin/python"
+params.proj_dir       = "/n/fs/ragr-research/projects/fastppm/"
+params.simulation_dir = "/n/fs/ragr-research/projects/fastppm-data/simulations"
+params.python         = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/breaked/bin/python"
 
 params.citup_python = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/citupenv/bin/python"
 params.citup_iter   = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/citupenv/bin/run_citup_iter.py"
@@ -75,6 +75,6 @@ workflow {
         [freq_matrix_T, nmuts, id]
     }
 
-    sim_files | citup
+    // sim_files | citup
     sim_files | citup_star
 }

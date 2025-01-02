@@ -10,16 +10,15 @@ params.cvxopt_command     = "${params.proj_dir}/scripts/cvxopt_binom_regression.
 params.gurobi_command     = "${params.proj_dir}/scripts/gurobi_lp_binom_regression.py"
 params.time_command       = "/usr/bin/time -v"
 
-params.nmutations  = [100, 500, 1000] //, 2500]
-params.nsamples    = [50]
+params.nmutations  = [100, 500, 1000, 2500]
+params.nsamples    = [500]
 params.seeds       = 1..20
 params.coverage    = [30, 100, 1000]
-params.nsegments   = [100, 1000] //, 10000]
+params.nsegments   = [50, 100]//, 1000] //, 10000]
 
-// fails with more than 1000 nodes
 process regress_l2_projection {
     cpus 1
-    memory '2 GB'
+    memory '1 GB'
     time '59m'
 
     scratch true
@@ -32,14 +31,14 @@ process regress_l2_projection {
         tuple path("output.txt"), path("timing.txt"), val(id)
 
     """
-    python '${params.make_projection_input}' ${clone_tree} ${freq_matrix} ${weight_matrix} > input.txt
+    python '${params.make_projection_input}' ${clone_tree} ${freq_matrix} --weight_matrix ${weight_matrix} > input.txt
     /usr/bin/time -v '${params.projection_command}' input.txt output.txt 1 2>> timing.txt
     """
 }
 
 process regress_l2_fastppm {
     cpus 1
-    memory '2 GB'
+    memory '1 GB'
     time '59m'
 
     scratch true
@@ -59,8 +58,8 @@ process regress_l2_fastppm {
 
 process regress_binom_fastppm_binomial {
     cpus 1
-    memory '8 GB'
-    time '59m'
+    memory '32 GB'
+    time '4h'
 
     scratch true
     publishDir "${params.output_dir}/fastppm_binomial/${id}/", mode: 'copy', overwrite: true
@@ -78,8 +77,8 @@ process regress_binom_fastppm_binomial {
 
 process regress_binom_fastppm_binomial_K {
     cpus 1
-    memory '16 GB'
-    time '59m'
+    memory '32 GB'
+    time '4h'
 
     scratch true
     publishDir "${params.output_dir}/fastppm_binomial_K/${id}/", mode: 'copy', overwrite: true
@@ -97,8 +96,8 @@ process regress_binom_fastppm_binomial_K {
 
 process regress_binom_cvxopt {
     cpus 1
-    memory '16 GB'
-    time '59m'
+    memory '32 GB'
+    time '4h'
 
     scratch true
     publishDir "${params.output_dir}/cvxopt_binomial/${id}/", mode: 'copy', overwrite: true
@@ -116,8 +115,8 @@ process regress_binom_cvxopt {
 
 process regress_binom_gurobi {
     cpus 1
-    memory '16 GB'
-    time '59m'
+    memory '32 GB'
+    time '4h'
 
     scratch true
     publishDir "${params.output_dir}/gurobi_binomial_K/${id}/", mode: 'copy', overwrite: true
@@ -156,10 +155,10 @@ workflow {
     }
 
     /* Select required files and run methods. */
-    simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_fastppm_binomial_K
+    // simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_fastppm_binomial_K
     // simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_gurobi
-    // simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_cvxopt
-    // simulations | map { [it[0], it[1], it[2], it[6]] } | regress_binom_fastppm_binomial
-    // simulations | map { [it[0], it[3], it[4], it[6]] } | regress_l2_projection 
-    // simulations | map { [it[0], it[1], it[2], it[4], it[6]] } | regress_l2_fastppm 
+    // simulations | map { [it[0], it[1], it[2], it[6]] } | unique | regress_binom_cvxopt
+    // simulations | map { [it[0], it[1], it[2], it[6]] } | unique | regress_binom_fastppm_binomial
+    // simulations | map { [it[0], it[3], it[4], it[6]] } | unique | regress_l2_projection 
+    simulations | map { [it[0], it[1], it[2], it[4], it[6]] } | unique | regress_l2_fastppm 
 }
