@@ -1,6 +1,8 @@
 #ifndef PIECEWISE_QUADRATICF_HPP
 #define PIECEWISE_QUADRATICF_HPP
 
+#define ADD_PRIORITY_QUEUE 0
+
 #include <queue>
 #include <iostream>
 #include <vector>
@@ -51,6 +53,52 @@ public:
             m0 += fs[c].m0;
         }
 
+        size_t total_bp_count = 0;
+        for (int c : children) {
+          total_bp_count += fs[c].breakpoints.size();
+        }
+
+        breakpoints.resize(total_bp_count);
+        slopes.resize(total_bp_count);
+        float current_slope = m0;
+        
+        std::vector<size_t> idx(children.size(), 0);
+        int added = 0;
+        while (true) {
+            float min_bp = std::numeric_limits<float>::infinity();
+            for (size_t i = 0; i < children.size(); i++) {
+                int c = children[i];
+                if (idx[i] < fs[c].breakpoints.size()) {
+                    float candidate = fs[c].breakpoints[idx[i]];
+                    if (candidate < min_bp) {
+                        min_bp = candidate;
+                    }
+                }
+            }
+
+            if (min_bp == std::numeric_limits<float>::infinity()) {
+                break;
+            }
+
+            for (size_t i = 0; i < children.size(); i++) {
+                int c = children[i];
+                if (idx[i] < fs[c].breakpoints.size() && fs[c].breakpoints[idx[i]] == min_bp) {
+                    if (idx[i] == 0) {
+                        current_slope -= fs[c].m0;
+                    } else {
+                        current_slope -= fs[c].slopes[idx[i] - 1];
+                    }
+                    current_slope += fs[c].slopes[idx[i]];
+                    idx[i]++;
+                }
+            }
+            
+            breakpoints[added] = min_bp;
+            slopes[added] = current_slope;
+            added++;
+        }
+
+        /*
         using BpChild = std::tuple<float,int,size_t>; // breakpoint, child, index
         std::priority_queue<BpChild, std::vector<BpChild>, std::greater<BpChild>> pq;
 
@@ -100,6 +148,7 @@ public:
             slopes[added] = current_slope;
             added++;
         }
+        */
 
         breakpoints.resize(added);
         slopes.resize(added);
