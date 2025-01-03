@@ -9,13 +9,22 @@ namespace L2Solver {
         size_t nrows = frequency_matrix.size();
         size_t ncols = frequency_matrix[0].size();
 
-        for (size_t i = 0; i < ncols; ++i) {
-            fs.push_back(PiecewiseQuadraticF(ncols + 1));
-            gs.push_back(PiecewiseQuadraticF(ncols + 1));
-        }
-
         std::vector<int> postorder = clone_tree.postorder_traversal(vertex_map[root]);
         std::vector<int> preorder = clone_tree.preorder_traversal(vertex_map[root]);
+        std::vector<int> num_descendants(ncols, 1);
+        for (auto u : postorder) {
+            if (clone_tree.out_degree(u) == 0) continue;
+
+            const auto& children = clone_tree.successors(u);
+            for (auto v : children) {
+                num_descendants[u] += num_descendants[v];
+            }
+        }
+
+        for (size_t i = 0; i < ncols; ++i) {
+            fs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
+            gs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
+        }
         
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -57,7 +66,7 @@ namespace L2Solver {
                 gamma = alpha_0;
             } else {
                 int p = clone_tree.predecessors(u)[0]; // convert i to vertex coordinates, then get the parent
-                gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
+                gamma = alphas[j][p]; // get the parent's alpha
             }
 
             float freq = frequency_matrix[j][i];
@@ -70,7 +79,7 @@ namespace L2Solver {
                 alpha = g.compute_argmin(gamma, freq, weight);
             }
 
-            alphas[j][i] = alpha;
+            alphas[j][u] = alpha;
             frequencies[j][i] = (alpha - gamma) / (2.0 * weight) + freq;
         }
     }
