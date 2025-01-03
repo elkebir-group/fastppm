@@ -46,6 +46,15 @@ public:
         slopes.clear();
 
         if (children.empty()) return;
+
+        if (children.size() == 1) {
+            f0 = fs[children[0]].f0;
+            c0 = fs[children[0]].c0;
+            m0 = fs[children[0]].m0;
+            breakpoints = fs[children[0]].breakpoints;
+            slopes = fs[children[0]].slopes;
+            return;
+        }
         
         for (int c : children) {
             f0 += fs[c].f0;
@@ -60,8 +69,8 @@ public:
 
         breakpoints.resize(total_bp_count);
         slopes.resize(total_bp_count);
-        float current_slope = m0;
         
+        float current_slope = m0;
         std::vector<size_t> idx(children.size(), 0);
         int added = 0;
         while (true) {
