@@ -100,6 +100,25 @@ public:
         return succ[u].size();
     }
 
+    std::vector<int> preorder_traversal(int root) {
+        std::vector<int> preorder;
+        std::stack<int> call_stack;
+        call_stack.push(root);
+        while(!call_stack.empty()) {
+            int i = call_stack.top();
+            call_stack.pop();
+
+            preorder.push_back(i);
+
+            const auto& children = this->successors(i);
+            for (auto k : children) {
+                call_stack.push(k);
+            }
+        }
+
+        return preorder;
+    }
+
     std::vector<int> postorder_traversal(int root) {
         std::stack<int> call_stack;
         call_stack.push(root);
@@ -113,14 +132,12 @@ public:
 
             if (visited[i]) continue;
 
-            // Check if leaf, if so, add to postorder.
             if (this->out_degree(i) == 0) {
                 visited[i] = true;
                 postorder.push_back(i);
                 continue;
             }
 
-            // Recurse at children. 
             const auto& children = this->successors(i);
             bool all_children_valid = true; 
             for (auto k : children) {

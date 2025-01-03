@@ -15,6 +15,7 @@ namespace L2Solver {
         }
 
         std::vector<int> postorder = clone_tree.postorder_traversal(vertex_map[root]);
+        std::vector<int> preorder = clone_tree.preorder_traversal(vertex_map[root]);
         
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -37,32 +38,25 @@ namespace L2Solver {
 
             alpha_0 = std::max(0.0f, alpha_0);
             obj += f(alpha_0, cs) - alpha_0;
-            backtrack(alpha_0, j);
+            backtrack(preorder, alpha_0, j);
         }
 
         this->objective = obj;
     }
 
-    void Solver::backtrack(float alpha_0, int j) {
-        std::stack<int> stack;
-        stack.push(root); // root is in column coordinates
+    void Solver::backtrack(const std::vector<int>& preorder, float alpha_0, int j) {
+      for (auto u : preorder) {
+            int i = clone_tree[u].data;
 
-        while(!stack.empty()) {
-            int i = stack.top(); // i is in column coordinates
-            stack.pop();
+            const auto& children = clone_tree.successors(u);
 
-            const auto& children = clone_tree.successors(vertex_map[i]);
-
-            const PiecewiseQuadraticF& g = gs[vertex_map[i]];
-            for (auto k : children) {
-                stack.push(clone_tree[k].data);
-            }
+            const PiecewiseQuadraticF& g = gs[u];
 
             float gamma; 
             if (i == root) {
                 gamma = alpha_0;
             } else {
-                int p = clone_tree.predecessors(vertex_map[i])[0]; // convert i to vertex coordinates, then get the parent
+                int p = clone_tree.predecessors(u)[0]; // convert i to vertex coordinates, then get the parent
                 gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
             }
 
