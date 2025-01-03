@@ -98,58 +98,6 @@ public:
             added++;
         }
 
-        /*
-        using BpChild = std::tuple<float,int,size_t>; // breakpoint, child, index
-        std::priority_queue<BpChild, std::vector<BpChild>, std::greater<BpChild>> pq;
-
-        float current_slope = m0;
-        for (int c : children) {
-            pq.push({fs[c].breakpoints[0], c, 0});
-            breakpoints.resize(breakpoints.size() + fs[c].breakpoints.size());
-            slopes.resize(slopes.size() + fs[c].slopes.size());
-        }
-
-        int added = 0;
-        while (!pq.empty()) {
-            auto [bp, c, i] = pq.top();
-            pq.pop();
-
-            if (i == 0) {
-                current_slope -= fs[c].m0;
-            } else {
-                current_slope -= fs[c].slopes[i - 1];
-            }
-          
-            current_slope += fs[c].slopes[i];
-
-            if (i + 1 < fs[c].breakpoints.size()) {
-                pq.push({fs[c].breakpoints[i + 1], c, i + 1});
-            }
-
-            // keep popping until we find a breakpoint that is not the same as bp
-            while (!pq.empty() && std::get<0>(pq.top()) == bp) {
-                auto [bp, c, i] = pq.top();
-                pq.pop();
-
-                if (i == 0) {
-                    current_slope -= fs[c].m0;
-                } else {
-                    current_slope -= fs[c].slopes[i - 1];
-                }
-
-                current_slope += fs[c].slopes[i];
-
-                if (i + 1 < fs[c].breakpoints.size()) {
-                    pq.push({fs[c].breakpoints[i + 1], c, i + 1});
-                }
-            }
-
-            breakpoints[added] = bp;
-            slopes[added] = current_slope;
-            added++;
-        }
-        */
-
         breakpoints.resize(added);
         slopes.resize(added);
     }
