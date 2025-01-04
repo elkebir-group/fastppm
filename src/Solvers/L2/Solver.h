@@ -23,7 +23,7 @@ namespace L2Solver {
 
             /* Backtracks to compute the dual 
              * variables for sample j */
-            void backtrack(float alpha_0, int j);
+            void backtrack(const std::vector<int>& preorder, float alpha_0, int j);
         public:
             float objective;
             std::vector<std::vector<float>> frequencies;
@@ -35,9 +35,6 @@ namespace L2Solver {
                 std::vector<std::vector<float>> weight_matrix,
                 int root
             ) : clone_tree(clone_tree), vertex_map(vertex_map), root(root) {
-                fs.resize(frequency_matrix[0].size());
-                gs.resize(frequency_matrix[0].size());
-
                 this->frequency_matrix.reserve(frequency_matrix.size());
                 for (size_t i = 0; i < frequency_matrix.size(); i++) {
                     this->frequency_matrix.push_back(std::vector<float>(frequency_matrix[i].begin(), frequency_matrix[i].end()));

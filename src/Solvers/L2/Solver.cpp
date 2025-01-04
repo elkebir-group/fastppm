@@ -7,10 +7,28 @@
 namespace L2Solver {
     void Solver::solve() {
         size_t nrows = frequency_matrix.size();
+        size_t ncols = frequency_matrix[0].size();
+
+        std::vector<int> postorder = clone_tree.postorder_traversal(vertex_map[root]);
+        std::vector<int> preorder = clone_tree.preorder_traversal(vertex_map[root]);
+        std::vector<int> num_descendants(ncols, 1);
+        for (auto u : postorder) {
+            if (clone_tree.out_degree(u) == 0) continue;
+
+            const auto& children = clone_tree.successors(u);
+            for (auto v : children) {
+                num_descendants[u] += num_descendants[v];
+            }
+        }
+
+        for (size_t i = 0; i < ncols; ++i) {
+            fs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
+            gs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
+        }
         
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
-            forward_solve<PiecewiseQuadraticF>(clone_tree, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
+            forward_solve<PiecewiseQuadraticF>(clone_tree, postorder, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, j);
             const PiecewiseQuadraticF& f = fs[vertex_map[root]];
             const std::vector<float> cs = f.get_derivative_intercepts();
 
@@ -29,33 +47,26 @@ namespace L2Solver {
 
             alpha_0 = std::max(0.0f, alpha_0);
             obj += f(alpha_0, cs) - alpha_0;
-            backtrack(alpha_0, j);
+            backtrack(preorder, alpha_0, j);
         }
 
         this->objective = obj;
     }
 
-    void Solver::backtrack(float alpha_0, int j) {
-        std::stack<int> stack;
-        stack.push(root); // root is in column coordinates
+    void Solver::backtrack(const std::vector<int>& preorder, float alpha_0, int j) {
+      for (auto u : preorder) {
+            int i = clone_tree[u].data;
 
-        while(!stack.empty()) {
-            int i = stack.top(); // i is in column coordinates
-            stack.pop();
+            const auto& children = clone_tree.successors(u);
 
-            const auto& children = clone_tree.successors(vertex_map[i]);
-
-            const PiecewiseQuadraticF& g = gs[vertex_map[i]];
-            for (auto k : children) {
-                stack.push(clone_tree[k].data);
-            }
+            const PiecewiseQuadraticF& g = gs[u];
 
             float gamma; 
             if (i == root) {
                 gamma = alpha_0;
             } else {
-                int p = clone_tree.predecessors(vertex_map[i])[0]; // convert i to vertex coordinates, then get the parent
-                gamma = alphas[j][clone_tree[p].data]; // get the parent's alpha
+                int p = clone_tree.predecessors(u)[0]; // convert i to vertex coordinates, then get the parent
+                gamma = alphas[j][p]; // get the parent's alpha
             }
 
             float freq = frequency_matrix[j][i];
@@ -68,7 +79,7 @@ namespace L2Solver {
                 alpha = g.compute_argmin(gamma, freq, weight);
             }
 
-            alphas[j][i] = alpha;
+            alphas[j][u] = alpha;
             frequencies[j][i] = (alpha - gamma) / (2.0 * weight) + freq;
         }
     }
