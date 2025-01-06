@@ -24,14 +24,17 @@ namespace LogBinomialADMM {
         }
 
         // Step 1. Find decent initial solution
-        L2Solver::Solver l2_solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
+        l2_solver = L2Solver::Solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
+        l2_solver.initialize();
         l2_solver.solve();
 
-        frequencies = std::move(l2_solver.frequencies);
+        frequencies = l2_solver.frequencies;
         usages = left_inverse(clone_tree, vertex_map, frequencies);
         objective_update();
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < num_admm_iterations; i++) {
+            std::cout << "Objective: " << objective << std::endl;
+
             frequency_update();          // ADMM Step 1
             usage_update(weight_matrix); // ADMM Step 2
             residual_update();           // ADMM Step 3
@@ -95,8 +98,7 @@ namespace LogBinomialADMM {
             for (size_t j = 0; j < frequencies[i].size(); j++) {
                 double freq = 0.5;
                 double current_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
-                int k = 0;
-                for (; k < 20; k++) {
+                for (int k = 0; k < max_newton_iterations; k++) {
                     double current_grad = compute_gradient(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
                     double current_hess = compute_hessian(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
 
@@ -108,7 +110,10 @@ namespace LogBinomialADMM {
                     freq = freq - current_grad * step_size / current_hess;
                     double updated_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
 
-                    if (std::abs(current_obj - updated_obj) < 1e-5 || std::abs(current_grad) < 1e-5 || freq > 1 - 1e-5 || freq < 1e-5) {
+                    if (std::abs(current_obj - updated_obj) < newton_tolerance 
+                            || std::abs(current_grad) < newton_tolerance
+                            || freq > 1 - frequency_clamp 
+                            || freq < frequency_clamp) {
                         break;
                     }
                 }
@@ -125,7 +130,7 @@ namespace LogBinomialADMM {
                 frequency_matrix[i][j] = frequencies[i][j] - (residuals[i][j] / rho);
             }
         }
-        L2Solver::Solver l2_solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
+        l2_solver.update_frequency_matrix(frequency_matrix);
         l2_solver.solve();
         usages = left_inverse(clone_tree, vertex_map, l2_solver.frequencies);
     }
@@ -146,18 +151,18 @@ namespace LogBinomialADMM {
         for (size_t i = 0; i < variant_reads.size(); i++) {
             for (size_t j = 0; j < variant_reads[i].size(); j++) {
                 float inc = 0.0;
-                if (frequency_matrix[i][j] < 1e-6) {
-                    frequency_matrix[i][j] = 1e-6;
-                } else if (frequency_matrix[i][j] > 1 - 1e-6) {
-                    frequency_matrix[i][j] = 1 - 1e-6;
+                if (frequency_matrix[i][j] < frequency_clamp) {
+                    frequency_matrix[i][j] = frequency_clamp;
+                } else if (frequency_matrix[i][j] > 1.0f - frequency_clamp) {
+                    frequency_matrix[i][j] = 1.0f - frequency_clamp;
                 }
 
                 if (variant_reads[i][j] == 0) {
-                    inc = (total_reads[i][j] - variant_reads[i][j]) * log(1 - frequency_matrix[i][j]);
+                    inc = (total_reads[i][j] - variant_reads[i][j]) * log(1.0f - frequency_matrix[i][j]);
                 } else if (variant_reads[i][j] == total_reads[i][j]) {
                     inc = variant_reads[i][j] * log(frequency_matrix[i][j]);
                 } else {
-                    inc = variant_reads[i][j] * log(frequency_matrix[i][j]) + (total_reads[i][j] - variant_reads[i][j]) * log(1 - frequency_matrix[i][j]);
+                    inc = variant_reads[i][j] * log(frequency_matrix[i][j]) + (total_reads[i][j] - variant_reads[i][j]) * log(1.0f - frequency_matrix[i][j]);
                 }
 
                 obj += inc;

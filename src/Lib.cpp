@@ -34,6 +34,7 @@ SolverResult l2_solve(
     L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
 
     auto start = std::chrono::high_resolution_clock::now();
+    solver.initialize();
     solver.solve();
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -49,7 +50,7 @@ SolverResult log_binomial_admm_solve(
     const digraph<int>& clone_tree,
     size_t root
 ) {
-    LogBinomialADMM::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
+    LogBinomialADMM::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root, 30, 20, 1e-5, 1e-6);
 
     auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
