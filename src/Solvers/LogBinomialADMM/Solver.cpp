@@ -3,7 +3,6 @@
 #include "../../CloneTree.h"
 #include "../L2/Solver.h"
 #include "Solver.h" 
-#include "Poly34.h"
 
 namespace LogBinomialADMM {
     void Solver::solve() {
@@ -32,9 +31,7 @@ namespace LogBinomialADMM {
         usages = left_inverse(clone_tree, vertex_map, frequencies);
         objective_update();
 
-        for (int i = 0; i < 200; i++) {
-            spdlog::info("Objective: {}", objective);
-
+        for (int i = 0; i < 30; i++) {
             frequency_update();          // ADMM Step 1
             usage_update(weight_matrix); // ADMM Step 2
             residual_update();           // ADMM Step 3
@@ -53,43 +50,70 @@ namespace LogBinomialADMM {
             }
         }
 
-        double x[3];
+        /* TODO:
+         *  Take compute_gradient(.), compute_hessian(.), compute_obj(.) as an argument 
+         *  to the Solver to support other loss functions.
+         */
+        const auto& compute_gradient = [](double freq, int var, int tot, double rho, double w) {
+            if (var == 0) { 
+                return ((tot - var) / (1 - freq)) + rho * (freq-w);
+            } else if (var == tot) {
+                return - var / freq + rho * (freq-w);
+            } else {
+                return ((tot - var) / (1 - freq)) - var / freq + rho * (freq-w);
+            }
+        };
+
+        const auto& compute_hessian = [](double freq, int var, int tot, double rho, double w) {
+            if (var == 0) {
+                return rho + (tot - var) / ((1 - freq) * (1 - freq));
+            } else if (var == tot) {
+                return rho + var / (freq * freq);
+            } else {
+                return rho + (tot - var) / ((1 - freq) * (1 - freq)) + var / (freq * freq);
+            }
+        };
+
+        const auto& compute_obj = [](double freq, int var, int tot, double rho, double w) {
+            if (freq > 1.0 || freq < 0.0) return 1e9;
+
+            if (var == 0) {
+                return -(tot - var) * log(1 - freq) + rho * (freq - w) * (freq - w);
+            } else if (var == tot) {
+                return -var * log(freq) + rho * (freq - w) * (freq - w);
+            } else {
+                return -var * log(freq) - (tot - var) * log(1 - freq) + rho * (freq - w) * (freq - w);
+            }
+        };
+
+        /* 
+         * Solve 1D optimization problems using 
+         * damped Newton's with backtracking line search. 
+         * TODO: Investigate further.
+         */
         for (size_t i = 0; i < frequencies.size(); i++) {
             for (size_t j = 0; j < frequencies[i].size(); j++) {
-                // solves cubic a + (b * x) + (c * x^2) + (d * x^3) = 0
-                float a = -variant_reads[i][j];
-                float b = total_reads[i][j] - rho * ws[i][j];
-                float c = rho + rho*ws[i][j];
-                float d = -rho;
+                double freq = 0.5;
+                double current_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
+                int k = 0;
+                for (; k < 20; k++) {
+                    double current_grad = compute_gradient(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
+                    double current_hess = compute_hessian(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
 
-                // solve the above cubic by making leading coefficient 1.0
-                int k = SolveP3(x, c / d, b / d, a / d);
+                    double step_size = 1.0;
+                    while (compute_obj(freq - current_grad * step_size / current_hess, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]) > current_obj) {
+                        step_size *= 0.90;
+                    }
 
-                bool found = false;
-                for (int l = 0; l < k; l++) {
-                    if ((x[l] >= 0.0f - 1e-4f) && (x[l] <= 1.0f + 1e-4f)) {
-                        if (x[l] < 0.0f) {
-                            x[l] = 0.0f;
-                        } else if (x[l] > 1.0f) {
-                            x[l] = 1.0f;
-                        }
+                    freq = freq - current_grad * step_size / current_hess;
+                    double updated_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
 
-                        frequencies[i][j] = x[l];
-                        found = true;
+                    if (std::abs(current_obj - updated_obj) < 1e-5 || std::abs(current_grad) < 1e-5 || freq > 1 - 1e-5 || freq < 1e-5) {
                         break;
                     }
                 }
 
-                if (!found) {
-                    std::cout << "a + (b * x) + (c * x^2) + (d * x^3) = " << a << " + " << b << " * x + " << c << " * x^2 + " << d << " * x^3" << std::endl;
-                    std::cout << "var/total: " << ((float) variant_reads[i][j]) / ((float) total_reads[i][j]) << std::endl;
-                    std::cout << "ws[i][j]: " << ws[i][j] << std::endl;
-                    std::cout << "frequencies[i][j]: " << frequencies[i][j] << std::endl;
-                    for (size_t l = 0; l < k; l++) {
-                        std::cout << "x[" << l << "]: " << x[l] << std::endl;
-                    }
-                    throw std::runtime_error("No solution found for cubic equation");
-                }
+                frequencies[i][j] = freq;
             }
         }
     }
@@ -122,25 +146,11 @@ namespace LogBinomialADMM {
         for (size_t i = 0; i < variant_reads.size(); i++) {
             for (size_t j = 0; j < variant_reads[i].size(); j++) {
                 float inc = 0.0;
-                if (frequency_matrix[i][j] < 1e-5) {
-                    frequency_matrix[i][j] = 1e-5;
-                } else if (frequency_matrix[i][j] > 1 - 1e-5) {
-                    frequency_matrix[i][j] = 1 - 1e-5;
+                if (frequency_matrix[i][j] < 1e-6) {
+                    frequency_matrix[i][j] = 1e-6;
+                } else if (frequency_matrix[i][j] > 1 - 1e-6) {
+                    frequency_matrix[i][j] = 1 - 1e-6;
                 }
-
-                /*
-                if (frequency_matrix[i][j] == 0 && variant_reads[i][j] > 0) {
-                    std::cout << "frequency_matrix[i][j]: " << frequency_matrix[i][j] << " variant_reads[i][j]: " << variant_reads[i][j] << " total_reads[i][j]: " << total_reads[i][j] << std::endl;
-                    throw std::runtime_error("frequency_matrix[i][j] == 0 && variant_reads[i][j] > 0");
-                }
-
-                if (frequency_matrix[i][j] == 1 && variant_reads[i][j] < total_reads[i][j]) {
-                    std::cout << "frequency_matrix[i][j]: " << frequency_matrix[i][j] << " variant_reads[i][j]: " << variant_reads[i][j] << " total_reads[i][j]: " << total_reads[i][j] << std::endl;
-                    throw std::runtime_error("frequency_matrix[i][j] == 1 && variant_reads[i][j] < total_reads[i][j]");
-                }
-
-                std::cout << "frequency_matrix[i][j]: " << frequency_matrix[i][j] << " variant_reads[i][j]: " << variant_reads[i][j] << " total_reads[i][j]: " << total_reads[i][j] << std::endl;
-                */
 
                 if (variant_reads[i][j] == 0) {
                     inc = (total_reads[i][j] - variant_reads[i][j]) * log(1 - frequency_matrix[i][j]);
