@@ -8,6 +8,7 @@
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
 #include "Solvers/L2/Solver.h"
+#include "Solvers/LogBinomialADMM/Solver.h"
 
 /* 
  * Solves the optimization problem using the L2 loss function.
@@ -39,6 +40,23 @@ SolverResult l2_solve(
 
     auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
+}
+
+SolverResult log_binomial_admm_solve(
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root
+) {
+    LogBinomialADMM::Solver solver(clone_tree, vertex_map, variant_matrix, total_matrix, root);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    solver.solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    return {runtime, solver.objective, solver.usages, solver.frequencies};
 }
 
 SolverResult log_binomial_fixed_solve(

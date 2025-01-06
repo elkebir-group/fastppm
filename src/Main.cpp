@@ -140,7 +140,7 @@ int main(int argc, char ** argv) {
     program.add_argument("-l", "--loss")
         .help("Loss function L_i(.) to use for optimization")
         .default_value("l2")
-        .choices("l1", "l2", "binomial", "binomial_K");
+        .choices("l1", "l2", "binomial", "binomial_K", "binomial_admm");
 
     program.add_argument("-K", "--segments")
         .help("Number of segments, only used when loss function is 'binomial' or 'binomial_K'")
@@ -227,8 +227,10 @@ int main(int argc, char ** argv) {
         result = log_binomial_solve(vertex_map_vector, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
     } else if (program.get<std::string>("-l") == "binomial_K") {
         result = log_binomial_fixed_solve(vertex_map_vector, variant_matrix, total_matrix, clone_tree, tree_root, nr_segments);
+    } else if (program.get<std::string>("-l") == "binomial_admm") {
+        result = log_binomial_admm_solve(vertex_map_vector, variant_matrix, total_matrix, clone_tree, tree_root);
     } else if (program.get<std::string>("-l") == "l2") {
-            result = l2_solve(vertex_map_vector, variant_matrix, total_matrix, weights, clone_tree, tree_root);
+        result = l2_solve(vertex_map_vector, variant_matrix, total_matrix, weights, clone_tree, tree_root);
     } else {
         error_logger->error("The loss function specified is not yet supported.");
         std::exit(1);

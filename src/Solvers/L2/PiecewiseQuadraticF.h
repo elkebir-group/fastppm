@@ -258,29 +258,23 @@ public:
     }
 
     float compute_argmin(float gamma, float frequency, float weight) const {
+        // compute intercepts of the pieces of the derivative, using continuity
+        std::vector<float> cs = get_derivative_intercepts();
         float half_weight_inv = 1.0 / (2.0 * weight);
 
         // find first breakpoint x
-        size_t l = 0;
-        float cs_l = c0 + m0 * breakpoints[0];
-        float cs_l_minus_1 = c0;
-        for (; l < breakpoints.size(); l++) {
-            if (2.0 * weight * (frequency - cs_l) + breakpoints[l] > 0.0) {
-                break;
-            }
-
-            if (l + 1 < breakpoints.size()) {
-                cs_l_minus_1 = cs_l;
-                cs_l += slopes[l] * (breakpoints[l + 1] - breakpoints[l]);
-            }
+        std::vector<float> zs(breakpoints.size());
+        for (size_t i = 0; i < breakpoints.size(); i++) {
+            zs[i] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
         }
 
+        size_t l = std::lower_bound(zs.begin(), zs.end(), gamma) - zs.begin();
         float alpha_star = 0.0;
 
         if (l == 0) {
             alpha_star = (frequency - half_weight_inv*gamma - c0) / (m0 - half_weight_inv);
         } else {
-            alpha_star = (frequency - half_weight_inv*gamma + half_weight_inv * breakpoints[l-1] - cs_l_minus_1) / (slopes[l-1] - half_weight_inv) + breakpoints[l-1];
+            alpha_star = (frequency - half_weight_inv*gamma + half_weight_inv * breakpoints[l-1] - cs[l-1]) / (slopes[l-1] - half_weight_inv) + breakpoints[l-1];
         }
 
         return std::max(0.0f, alpha_star);
