@@ -4,7 +4,7 @@
 #include "../L2/Solver.h"
 #include "Solver.h" 
 
-namespace LogBinomialADMM {
+namespace SeparableADMM {
     void Solver::solve() {
         std::vector<std::vector<float>> frequency_matrix;
         for (size_t i = 0; i < variant_reads.size(); i++) {
@@ -52,43 +52,6 @@ namespace LogBinomialADMM {
                 ws[i][j] = +ws[i][j] + (residuals[i][j] / rho);
             }
         }
-
-        /* TODO:
-         *  Take compute_gradient(.), compute_hessian(.), compute_obj(.) as an argument 
-         *  to the Solver to support other loss functions.
-         */
-        const auto& compute_gradient = [](double freq, int var, int tot, double rho, double w) {
-            if (var == 0) { 
-                return ((tot - var) / (1 - freq)) + rho * (freq-w);
-            } else if (var == tot) {
-                return - var / freq + rho * (freq-w);
-            } else {
-                return ((tot - var) / (1 - freq)) - var / freq + rho * (freq-w);
-            }
-        };
-
-        const auto& compute_hessian = [](double freq, int var, int tot, double rho, double w) {
-            if (var == 0) {
-                return rho + (tot - var) / ((1 - freq) * (1 - freq));
-            } else if (var == tot) {
-                return rho + var / (freq * freq);
-            } else {
-                return rho + (tot - var) / ((1 - freq) * (1 - freq)) + var / (freq * freq);
-            }
-        };
-
-        const auto& compute_obj = [](double freq, int var, int tot, double rho, double w) {
-            if (freq > 1.0 || freq < 0.0) return 1e9;
-
-            if (var == 0) {
-                return -(tot - var) * log(1 - freq) + rho * (freq - w) * (freq - w);
-            } else if (var == tot) {
-                return -var * log(freq) + rho * (freq - w) * (freq - w);
-            } else {
-                return -var * log(freq) - (tot - var) * log(1 - freq) + rho * (freq - w) * (freq - w);
-            }
-        };
-
         /* 
          * Solve 1D optimization problems using 
          * damped Newton's with backtracking line search. 
@@ -97,18 +60,21 @@ namespace LogBinomialADMM {
         for (size_t i = 0; i < frequencies.size(); i++) {
             for (size_t j = 0; j < frequencies[i].size(); j++) {
                 double freq = 0.5;
-                double current_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
+                double current_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j]) + rho * (freq - ws[i][j]) * (freq - ws[i][j]);
                 for (int k = 0; k < max_newton_iterations; k++) {
-                    double current_grad = compute_gradient(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
-                    double current_hess = compute_hessian(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
+                    double current_grad = compute_gradient(freq, variant_reads[i][j], total_reads[i][j]) + rho * (freq-ws[i][j]);
+                    double current_hess = compute_hessian(freq, variant_reads[i][j], total_reads[i][j]) + rho;
 
                     double step_size = 1.0;
-                    while (compute_obj(freq - current_grad * step_size / current_hess, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]) > current_obj) {
+                    double freq_p = freq - current_grad * step_size / current_hess;
+                    double updated_obj = compute_obj(freq_p, variant_reads[i][j], total_reads[i][j]) + rho * (freq_p - ws[i][j]) * (freq_p - ws[i][j]);
+                    while (updated_obj > current_obj) {
                         step_size *= 0.90;
+                        freq_p = freq - current_grad * step_size / current_hess;
+                        updated_obj = compute_obj(freq_p, variant_reads[i][j], total_reads[i][j]) + rho * (freq_p - ws[i][j]) * (freq_p - ws[i][j]);
                     }
 
-                    freq = freq - current_grad * step_size / current_hess;
-                    double updated_obj = compute_obj(freq, variant_reads[i][j], total_reads[i][j], rho, ws[i][j]);
+                    freq = freq_p;
 
                     if (std::abs(current_obj - updated_obj) < newton_tolerance 
                             || std::abs(current_grad) < newton_tolerance
@@ -150,25 +116,16 @@ namespace LogBinomialADMM {
         float obj = 0.0;
         for (size_t i = 0; i < variant_reads.size(); i++) {
             for (size_t j = 0; j < variant_reads[i].size(); j++) {
-                float inc = 0.0;
                 if (frequency_matrix[i][j] < frequency_clamp) {
                     frequency_matrix[i][j] = frequency_clamp;
                 } else if (frequency_matrix[i][j] > 1.0f - frequency_clamp) {
                     frequency_matrix[i][j] = 1.0f - frequency_clamp;
                 }
 
-                if (variant_reads[i][j] == 0) {
-                    inc = (total_reads[i][j] - variant_reads[i][j]) * log(1.0f - frequency_matrix[i][j]);
-                } else if (variant_reads[i][j] == total_reads[i][j]) {
-                    inc = variant_reads[i][j] * log(frequency_matrix[i][j]);
-                } else {
-                    inc = variant_reads[i][j] * log(frequency_matrix[i][j]) + (total_reads[i][j] - variant_reads[i][j]) * log(1.0f - frequency_matrix[i][j]);
-                }
-
-                obj += inc;
+                obj += compute_obj(frequency_matrix[i][j], variant_reads[i][j], total_reads[i][j]);
             }
         }
 
-        objective = -obj;
+        objective = obj;
     }
 }
