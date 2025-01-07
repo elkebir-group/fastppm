@@ -5,13 +5,10 @@
 #include "../TreeStructuredDualDP.h"
 
 namespace L2Solver {
-    void Solver::solve() {
-        size_t nrows = frequency_matrix.size();
-        size_t ncols = frequency_matrix[0].size();
-
-        std::vector<int> postorder = clone_tree.postorder_traversal(vertex_map[root]);
-        std::vector<int> preorder = clone_tree.preorder_traversal(vertex_map[root]);
-        std::vector<int> num_descendants(ncols, 1);
+    void Solver::initialize() {
+        postorder = clone_tree.postorder_traversal(vertex_map[root]);
+        preorder = clone_tree.preorder_traversal(vertex_map[root]);
+        num_descendants = std::vector(clone_tree.size(), 1);
         for (auto u : postorder) {
             if (clone_tree.out_degree(u) == 0) continue;
 
@@ -21,13 +18,18 @@ namespace L2Solver {
             }
         }
 
-        for (size_t i = 0; i < ncols; ++i) {
+        for (size_t i = 0; i < clone_tree.size(); ++i) {
             fs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
             gs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
         }
+
+        cs.reserve(clone_tree.size() + 1);
+    }
+
+    void Solver::solve() {
+        size_t nrows = frequency_matrix.size();
+        size_t ncols = frequency_matrix[0].size();
         
-        std::vector<float> cs;
-        cs.reserve(ncols + 1);
 
         float obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
@@ -50,13 +52,13 @@ namespace L2Solver {
 
             alpha_0 = std::max(0.0f, alpha_0);
             obj += f(alpha_0, cs) - alpha_0;
-            backtrack(preorder, cs, alpha_0, j);
+            backtrack(alpha_0, j);
         }
 
         this->objective = obj;
     }
 
-    void Solver::backtrack(const std::vector<int>& preorder, std::vector<float>& cs, float alpha_0, int j) {
+    void Solver::backtrack(float alpha_0, int j) {
       for (auto u : preorder) {
             int i = clone_tree[u].data;
 
