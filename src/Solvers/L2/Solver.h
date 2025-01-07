@@ -23,7 +23,7 @@ namespace L2Solver {
 
             /* Backtracks to compute the dual 
              * variables for sample j */
-            void backtrack(const std::vector<int>& preorder, float alpha_0, int j);
+            void backtrack(const std::vector<int>& preorder, std::vector<float>& cs, float alpha_0, int j);
         public:
             float objective;
             std::vector<std::vector<float>> frequencies;

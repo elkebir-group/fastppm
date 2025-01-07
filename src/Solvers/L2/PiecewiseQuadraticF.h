@@ -111,15 +111,13 @@ public:
         slopes.resize(added);
     }
 
-    std::vector<float> get_derivative_intercepts() const {
+    void get_derivative_intercepts(std::vector<float>& cs_buffer) const {
         // compute intercepts of the pieces of the derivative, using continuity
-        std::vector<float> cs(breakpoints.size());
-        cs[0] = c0 + m0 * (breakpoints[0]);
+        cs_buffer.resize(breakpoints.size());
+        cs_buffer[0] = c0 + m0 * (breakpoints[0]);
         for (size_t i = 1; i < breakpoints.size(); i++) {
-            cs[i] = cs[i - 1] + slopes[i - 1] * (breakpoints[i] - breakpoints[i - 1]);
+            cs_buffer[i] = cs_buffer[i - 1] + slopes[i - 1] * (breakpoints[i] - breakpoints[i - 1]);
         }
-
-        return cs; 
     }
 
     float operator()(float x, const std::vector<float>& cs) const {
@@ -173,11 +171,11 @@ public:
     // when F = \sum{j \in \delta(i)}J_j, this updates F to be 
     // J_i(\gamma) = max_{x \geq 0}(h_i(x - \gamma) + F(x))
     // really, this is the meat of the algorithm
-    void update_representation(float frequency, float weight, PiecewiseQuadraticF& result) const {
+    void update_representation(float frequency, float weight, PiecewiseQuadraticF& result, std::vector<float>& cs) const {
         // compute intercepts of the pieces of the derivative, using continuity
         float half_weight_inv = 1.0f / (2.0f * weight);
 
-        const std::vector<float> cs = get_derivative_intercepts();
+        get_derivative_intercepts(cs);
 
         // find first breakpoint x such that \alpha_i^*(x) = 0
         size_t l = 0;
@@ -257,18 +255,19 @@ public:
         result.m0 = new_m0;
     }
 
-    float compute_argmin(float gamma, float frequency, float weight) const {
+    float compute_argmin(float gamma, float frequency, float weight, std::vector<float> &cs) const {
         // compute intercepts of the pieces of the derivative, using continuity
-        std::vector<float> cs = get_derivative_intercepts();
+        get_derivative_intercepts(cs);
         float half_weight_inv = 1.0 / (2.0 * weight);
 
         // find first breakpoint x
-        std::vector<float> zs(breakpoints.size());
-        for (size_t i = 0; i < breakpoints.size(); i++) {
-            zs[i] = 2.0 * weight * (frequency - cs[i]) + breakpoints[i];
+        size_t l = 0;
+        for (;l < breakpoints.size(); l++) {
+            if (2.0 * weight * (frequency - cs[l]) + breakpoints[l] > 0.0) {
+                break;
+            }
         }
 
-        size_t l = std::lower_bound(zs.begin(), zs.end(), gamma) - zs.begin();
         float alpha_star = 0.0;
 
         if (l == 0) {
