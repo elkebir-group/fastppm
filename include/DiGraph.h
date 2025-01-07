@@ -54,6 +54,10 @@ public:
         pred[v].push_back(u);
     }
 
+    size_t size() const {
+        return vertices.size();
+    }
+
     std::vector<int> nodes() const {
         std::vector<int> vertices;
         for (int i = 0; i < id_counter; i++) {

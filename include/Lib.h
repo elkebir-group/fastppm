@@ -32,6 +32,14 @@ SolverResult l2_solve(
     size_t root
 );
 
+SolverResult log_binomial_admm_solve(
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root
+);
+
 SolverResult log_binomial_solve(
     const std::vector<int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,

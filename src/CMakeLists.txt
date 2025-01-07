@@ -9,6 +9,7 @@ add_library(fastppm-lib STATIC
     Solvers/LogBinomialPiecewise/State.cpp
     Solvers/LogBinomialPiecewise/Tree.cpp
     Solvers/LogBinomialPiecewise/Func.cpp
+    Solvers/SeparableADMM/Solver.cpp
     Solvers/L2/Solver.cpp
 )
 

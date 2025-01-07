@@ -8,6 +8,7 @@
 #include "DiGraph.h"
 #include "Solvers/LogBinomialPiecewise/Solver.h"
 #include "Solvers/L2/Solver.h"
+#include "Solvers/SeparableADMM/Solver.h"
 
 /* 
  * Solves the optimization problem using the L2 loss function.
@@ -33,12 +34,81 @@ SolverResult l2_solve(
     L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
 
     auto start = std::chrono::high_resolution_clock::now();
+    solver.initialize();
     solver.solve();
     auto end = std::chrono::high_resolution_clock::now();
     double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
+}
+
+SolverResult log_binomial_admm_solve(
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<int>>& variant_matrix,
+    const std::vector<std::vector<int>>& total_matrix,
+    const digraph<int>& clone_tree,
+    size_t root
+) {
+    /* 
+     * We pass in the log-binomial loss:
+     *          L_i(f) = -(v_i log f + (d_i - v_i) log (1 - f)) 
+     * to the SeparableADMM solver along with functions for 
+     * computing the gradient and Hessian.
+     */
+
+    const std::function<double(double,int,int)> compute_obj = [](double freq, int var, int tot) {
+        if (freq > 1.0 || freq < 0.0) {
+            return 1e9;
+        }
+
+        if (var == 0) {
+            return -(tot - var) * log(1 - freq) ;
+        } else if (var == tot) {
+            return -var * log(freq);
+        } else {
+            return -var * log(freq) - (tot - var) * log(1 - freq);
+        }
+    };
+
+    const std::function<double(double,int,int)> compute_gradient = [](double freq, int var, int tot) {
+        if (var == 0) { 
+            return ((tot - var) / (1 - freq));
+        } else if (var == tot) {
+            return - var / freq;
+        } else {
+            return ((tot - var) / (1 - freq)) - var / freq;
+        }
+    };
+
+    const std::function<double(double,int,int)> compute_hessian = [](double freq, int var, int tot) {
+        if (var == 0) {
+            return (tot - var) / ((1 - freq) * (1 - freq));
+        } else if (var == tot) {
+            return var / (freq * freq);
+        } else {
+            return (tot - var) / ((1 - freq) * (1 - freq)) + var / (freq * freq);
+        }
+    };
+
+    SeparableADMM::Solver solver(
+            compute_obj, 
+            compute_gradient, 
+            compute_hessian, 
+            clone_tree, 
+            vertex_map, 
+            variant_matrix, 
+            total_matrix, 
+            root, 
+            20, 20, 1e-7, 1e-7 // ADMM parameters
+    );
+
+    auto start = std::chrono::high_resolution_clock::now();
+    solver.solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    return {runtime, solver.objective, solver.usages, solver.frequencies};
 }
 
 SolverResult log_binomial_fixed_solve(
