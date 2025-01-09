@@ -263,7 +263,7 @@ public:
         // find first breakpoint x
         size_t l = 0;
         for (;l < breakpoints.size(); l++) {
-            if (2.0 * weight * (frequency - cs[l]) + breakpoints[l] > 0.0) {
+            if (2.0 * weight * (frequency - cs[l]) + breakpoints[l] >= gamma) {
                 break;
             }
         }

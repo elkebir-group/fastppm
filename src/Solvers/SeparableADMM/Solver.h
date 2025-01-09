@@ -17,14 +17,11 @@ namespace SeparableADMM {
             int root;
 
             int num_admm_iterations;
-            int max_newton_iterations;
-            double newton_tolerance;
+            double rho;
             float frequency_clamp;
-            double rho = 1000.0;
 
             std::function<double(double,int,int)> compute_obj;
-            std::function<double(double,int,int)> compute_gradient;
-            std::function<double(double,int,int)> compute_hessian;
+            std::function<double(double,double,int,int)> compute_minimizer;
 
             L2Solver::Solver l2_solver;
 
@@ -41,27 +38,23 @@ namespace SeparableADMM {
 
             Solver(
                 std::function<double(double,int,int)> compute_obj,
-                std::function<double(double,int,int)> compute_gradient,
-                std::function<double(double,int,int)> compute_hessian,
+                std::function<double(double,double,int,int)> compute_minimizer,
                 digraph<int> clone_tree, 
                 std::vector<int> vertex_map, 
                 std::vector<std::vector<int>> variant_reads,
                 std::vector<std::vector<int>> total_reads,
                 int root,
                 int num_admm_iterations,
-                int max_newton_iterations,
-                double newton_tolerance,
+                float rho,
                 float frequency_clamp
             ) : clone_tree(clone_tree), 
                 vertex_map(vertex_map), 
                 root(root), 
                 num_admm_iterations(num_admm_iterations),
-                max_newton_iterations(max_newton_iterations),
-                newton_tolerance(newton_tolerance),
+                rho(rho),
                 frequency_clamp(frequency_clamp),
                 compute_obj(compute_obj),
-                compute_gradient(compute_gradient),
-                compute_hessian(compute_hessian)
+                compute_minimizer(compute_minimizer)
             {
                 this->variant_reads.reserve(variant_reads.size());
                 for (size_t i = 0; i < variant_reads.size(); i++) {

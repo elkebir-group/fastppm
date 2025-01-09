@@ -54,6 +54,7 @@ py::dict regress_frequencies(
     SolverResult r;
     if (loss_function == "l2") {
         L2Solver::Solver solver(clone_tree, vertex_map, frequency_matrix, weight_matrix_value, root_value);
+        solver.initialize();
         solver.solve();
         auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
         r = {-1.0, solver.objective, usage_matrix, solver.frequencies};

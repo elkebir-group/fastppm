@@ -43,6 +43,55 @@ SolverResult l2_solve(
     return {runtime, solver.objective, usage_matrix, solver.frequencies};
 }
 
+/* Helper functions for ADMM log-binomial solver */
+int solve_quadratic(double A, double B, double C, double &r1, double &r2) {
+    const double EPS = 1e-14;
+    double D = B*B - 4*A*C;
+    if (std::fabs(D) < EPS) {
+        r1 = r2 = -B/(2*A);
+        return 1;
+    } else if (D > 0) {
+        double s = std::sqrt(D);
+        r1 = (-B + s)/(2*A);
+        r2 = (-B - s)/(2*A);
+        return 2;
+    }
+    return 0;
+};
+
+void solve_cubic(double a, double b, double c, double d, double &x1, double &x2, double &x3) {
+    const double EPS = 1e-14;
+    if (std::fabs(d) < EPS) {
+        x1 = 0;
+        int n = solve_quadratic(a, b, c, x2, x3);
+        if (n == 0) x2 = x3 = 0;
+        return;
+    }
+
+    double A = b/a, B = c/a, C = d/a;
+    double p = B - (A*A)/3, q = (2*A*A*A)/27 - (A*B)/3 + C;
+    double D = (q*q)/4 + (p*p*p)/27;
+    double shift = -A/3;
+    if (D > EPS) {
+        double s = std::sqrt(D);
+        double alpha = -q/2 + s, beta = -q/2 - s;
+        double u = std::cbrt(alpha), v = std::cbrt(beta);
+        x1 = u + v + shift;
+        x2 = x3 = x1;
+    } else if (std::fabs(D) < EPS) {
+        double u = std::cbrt(-q/2);
+        x1 = 2*u + shift;
+        x2 = x3 = -u + shift;
+    } else {
+        double r = 2*std::sqrt(-p/3);
+        double phi = std::acos((-q/2)/std::sqrt(-(p*p*p)/27))/3;
+        x1 = r*std::cos(phi) + shift;
+        x2 = r*std::cos(phi + 2*M_PI/3) + shift;
+        x3 = r*std::cos(phi + 4*M_PI/3) + shift;
+    }
+}
+
+
 SolverResult log_binomial_admm_solve(
     const std::vector<int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
@@ -58,10 +107,6 @@ SolverResult log_binomial_admm_solve(
      */
 
     const std::function<double(double,int,int)> compute_obj = [](double freq, int var, int tot) {
-        if (freq > 1.0 || freq < 0.0) {
-            return 1e9;
-        }
-
         if (var == 0) {
             return -(tot - var) * log(1 - freq) ;
         } else if (var == tot) {
@@ -70,37 +115,63 @@ SolverResult log_binomial_admm_solve(
             return -var * log(freq) - (tot - var) * log(1 - freq);
         }
     };
-
-    const std::function<double(double,int,int)> compute_gradient = [](double freq, int var, int tot) {
+    const std::function<double(double,double,int,int)> compute_minimizer = [](double rho, double w, int var, int tot) {
+        //std::cout << "Minimize[-" << var << "Log[x] - " << (tot - var) << "Log[1 - x] + " << rho / 2.0 << " (x - " << w << ")^2, x]" << std::endl;
+            
         if (var == 0) { 
-            return ((tot - var) / (1 - freq));
-        } else if (var == tot) {
-            return - var / freq;
-        } else {
-            return ((tot - var) / (1 - freq)) - var / freq;
+            // solve quadratic eq. find root in the range [0, 1]
+            double a = -rho, b = rho + rho * w, c = tot - var - rho * w;
+            double r1 = -1.0f, r2 = -1.0f;
+            solve_quadratic(a, b, c, r1, r2);
+            if (r1 >= 0 && r1 <= 1) {
+                return r1;
+            } else if (r2 >= 0 && r2 <= 1) {
+                return r2;
+            } 
+
+            return 0.0;
+        } 
+        
+        if (var == tot) {
+            double a = rho, b = -rho * w, c = -var;
+            double r1 = -1.0f, r2 = -1.0f;
+            solve_quadratic(a, b, c, r1, r2);
+            if (r1 >= 0 && r1 <= 1) {
+                return r1;
+            } else if (r2 >= 0 && r2 <= 1) {
+                return r2;
+            } 
+
+            return 1.0;
         }
+
+        // since var != 0 && var != tot, we need to solve a cubic eq over open
+        // interval (0, 1)
+        double a = -rho, b = rho + rho * w, c = tot - rho * w, d = -var;
+        // std::cout << a << "x^3 + " << b << "x^2 + " << c << "x + " << d << std::endl;
+        double r1 = -1.0f, r2 = -1.0f, r3 = -1.0f;
+        solve_cubic(a, b, c, d, r1, r2, r3);
+        if (r1 >= 0 && r1 <= 1) {
+            return r1;
+        } else if (r2 >= 0 && r2 <= 1) {
+            return r2;
+        } else if (r3 >= 0 && r3 <= 1) {
+            return r3;
+        }
+
+        return -1.0;
     };
 
-    const std::function<double(double,int,int)> compute_hessian = [](double freq, int var, int tot) {
-        if (var == 0) {
-            return (tot - var) / ((1 - freq) * (1 - freq));
-        } else if (var == tot) {
-            return var / (freq * freq);
-        } else {
-            return (tot - var) / ((1 - freq) * (1 - freq)) + var / (freq * freq);
-        }
-    };
 
     SeparableADMM::Solver solver(
             compute_obj, 
-            compute_gradient, 
-            compute_hessian, 
+            compute_minimizer, 
             clone_tree, 
             vertex_map, 
             variant_matrix, 
             total_matrix, 
             root, 
-            20, 20, 1e-7, 1e-7 // ADMM parameters
+            20, 500, 1e-6 // ADMM parameters
     );
 
     auto start = std::chrono::high_resolution_clock::now();
