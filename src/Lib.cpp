@@ -91,7 +91,6 @@ void solve_cubic(double a, double b, double c, double d, double &x1, double &x2,
     }
 }
 
-
 SolverResult log_binomial_admm_solve(
     const std::vector<int>& vertex_map,
     const std::vector<std::vector<int>>& variant_matrix,
@@ -115,11 +114,9 @@ SolverResult log_binomial_admm_solve(
             return -var * log(freq) - (tot - var) * log(1 - freq);
         }
     };
+
     const std::function<double(double,double,int,int)> compute_minimizer = [](double rho, double w, int var, int tot) {
-        //std::cout << "Minimize[-" << var << "Log[x] - " << (tot - var) << "Log[1 - x] + " << rho / 2.0 << " (x - " << w << ")^2, x]" << std::endl;
-            
         if (var == 0) { 
-            // solve quadratic eq. find root in the range [0, 1]
             double a = -rho, b = rho + rho * w, c = tot - var - rho * w;
             double r1 = -1.0f, r2 = -1.0f;
             solve_quadratic(a, b, c, r1, r2);
@@ -148,7 +145,6 @@ SolverResult log_binomial_admm_solve(
         // since var != 0 && var != tot, we need to solve a cubic eq over open
         // interval (0, 1)
         double a = -rho, b = rho + rho * w, c = tot - rho * w, d = -var;
-        // std::cout << a << "x^3 + " << b << "x^2 + " << c << "x + " << d << std::endl;
         double r1 = -1.0f, r2 = -1.0f, r3 = -1.0f;
         solve_cubic(a, b, c, d, r1, r2, r3);
         if (r1 >= 0 && r1 <= 1) {
@@ -171,7 +167,7 @@ SolverResult log_binomial_admm_solve(
             variant_matrix, 
             total_matrix, 
             root, 
-            20, 500, 1e-6 // ADMM parameters
+            20, 100, 1e-6 // ADMM parameters
     );
 
     auto start = std::chrono::high_resolution_clock::now();

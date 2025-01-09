@@ -26,7 +26,7 @@ namespace SeparableADMM {
             L2Solver::Solver l2_solver;
 
             void frequency_update();
-            void usage_update(const std::vector<std::vector<float>>& weight_matrix);
+            void usage_update();
             void residual_update();
             void objective_update();
         public:
@@ -35,6 +35,7 @@ namespace SeparableADMM {
             std::vector<std::vector<float>> frequencies;
             std::vector<std::vector<float>> usages;
             std::vector<std::vector<float>> residuals;
+            std::vector<std::vector<float>> buffer;
 
             Solver(
                 std::function<double(double,int,int)> compute_obj,
@@ -69,6 +70,7 @@ namespace SeparableADMM {
                     this->usages.push_back(std::vector<float>(variant_reads[i].size(), 0.0f));
                     this->frequencies.push_back(std::vector<float>(variant_reads[i].size(), 0.0f));
                     this->residuals.push_back(std::vector<float>(variant_reads[i].size(), 0.0f));
+                    this->buffer.push_back(std::vector<float>(variant_reads[i].size(), 0.0f));
                 }
             }
 

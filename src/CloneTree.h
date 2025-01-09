@@ -40,21 +40,36 @@ inline std::vector<int> postorder_dfs(const digraph<int>& clone_tree, int root) 
  * B is the n-clonal matrix B corresponding to T in 
  * O(mn) time where F is m x n.
  */
+inline void left_inverse(
+    const digraph<int>& clone_tree,
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<float>>& frequency_matrix,
+    std::vector<std::vector<float>>& result
+) {
+    for (size_t i = 0; i < result.size(); i++) {
+        for (size_t j = 0; j < result[i].size(); j++) {
+            result[i][j] = frequency_matrix[i][j];
+        }
+    }
+
+    for (size_t j = 0; j < frequency_matrix.size(); j++) {
+        for (size_t i = 0; i < frequency_matrix[j].size(); i++) {
+            for (auto child : clone_tree.successors(vertex_map[i])) {
+                size_t l = clone_tree[child].data;
+                result[j][i] -= frequency_matrix[j][l];
+            }
+        }
+    }
+}
+
 inline std::vector<std::vector<float>> left_inverse(
     const digraph<int>& clone_tree,
     const std::vector<int>& vertex_map,
     const std::vector<std::vector<float>>& frequency_matrix
 ) {
-    std::vector<std::vector<float>> usage_matrix = frequency_matrix;
-    for (size_t j = 0; j < frequency_matrix.size(); j++) {
-        for (size_t i = 0; i < frequency_matrix[j].size(); i++) {
-            for (auto child : clone_tree.successors(vertex_map[i])) {
-                size_t l = clone_tree[child].data;
-                usage_matrix[j][i] -= frequency_matrix[j][l];
-            }
-        }
-    }
-    return usage_matrix;
+    std::vector<std::vector<float>> result(frequency_matrix.size(), std::vector<float>(frequency_matrix[0].size(), 0.0f));
+    left_inverse(clone_tree, vertex_map, frequency_matrix, result);
+    return result;
 }
 
 /* 
@@ -62,16 +77,22 @@ inline std::vector<std::vector<float>> left_inverse(
  * n-clonal matrix B corresponding to T in O(mn) 
  * time where F is m x n.
  */
-inline std::vector<std::vector<float>> left_multiply(
+inline void left_multiply(
     const digraph<int>& clone_tree,
     int root,
     const std::vector<int>& vertex_map,
-    const std::vector<std::vector<float>>& frequency_matrix
+    const std::vector<std::vector<float>>& frequency_matrix,
+    std::vector<std::vector<float>>& result
 ) {
     // root is in column coordinates
     auto postorder = postorder_dfs(clone_tree, vertex_map[root]);
 
-    std::vector<std::vector<float>> result = frequency_matrix;
+    for (size_t i = 0; i < result.size(); i++) {
+        for (size_t j = 0; j < result[i].size(); j++) {
+            result[i][j] = frequency_matrix[i][j];
+        }
+    }
+
     for (auto i : postorder) {
         int k = clone_tree[i].data;
         for (auto child : clone_tree.successors(i)) {
@@ -81,7 +102,16 @@ inline std::vector<std::vector<float>> left_multiply(
             }
         }
     }
+}
 
+inline std::vector<std::vector<float>> left_multiply(
+    const digraph<int>& clone_tree,
+    int root,
+    const std::vector<int>& vertex_map,
+    const std::vector<std::vector<float>>& frequency_matrix
+) {
+    std::vector<std::vector<float>> result(frequency_matrix.size(), std::vector<float>(frequency_matrix[0].size(), 0.0f));
+    left_multiply(clone_tree, root, vertex_map, frequency_matrix, result);
     return result;
 }
 

@@ -66,6 +66,14 @@ namespace L2Solver {
                     this->frequency_matrix.push_back(std::vector<float>(frequency_matrix[i].begin(), frequency_matrix[i].end()));
                 }
             }
+
+            void update_weight_matrix(const std::vector<std::vector<float>> &weight_matrix) {
+                this->weight_matrix.clear();
+                this->weight_matrix.reserve(weight_matrix.size());
+                for (size_t i = 0; i < weight_matrix.size(); i++) {
+                    this->weight_matrix.push_back(std::vector<float>(weight_matrix[i].begin(), weight_matrix[i].end()));
+                }
+            }
     };
 };
 

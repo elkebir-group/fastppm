@@ -6,47 +6,60 @@
 
 namespace SeparableADMM {
     void Solver::solve() {
-        std::vector<std::vector<float>> frequency_matrix;
         for (size_t i = 0; i < variant_reads.size(); i++) {
-            std::vector<float> frequencies;
             for (size_t j = 0; j < variant_reads[i].size(); j++) {
-                float freq = total_reads[i][j] == 0 ? 0 : static_cast<float>(variant_reads[i][j]) / total_reads[i][j];
-                frequencies.push_back(freq);
+                float freq = total_reads[i][j] == 0 ? 0 : static_cast<float>(variant_reads[i][j]) / static_cast<float>(total_reads[i][j]);
+                frequencies[i][j] = freq;
+                buffer[i][j] = freq;
             }
-            frequency_matrix.push_back(frequencies);
         }
 
-        std::vector<std::vector<float>> weight_matrix = frequency_matrix;
-        for (size_t i = 0; i < weight_matrix.size(); i++) {
-            for (size_t j = 0; j < weight_matrix[i].size(); j++) {
-                weight_matrix[i][j] = 1.0f;
+        for (size_t i = 0; i < buffer.size(); i++) {
+            for (size_t j = 0; j < buffer[i].size(); j++) {
+                if (total_reads[i][j] == 0) {
+                    buffer[i][j] = 0.0f;
+                } else if (variant_reads[i][j] == 0 || variant_reads[i][j] == total_reads[i][j]) {
+                    buffer[i][j] = total_reads[i][j];
+                } else {
+                    buffer[i][j] = ((float) variant_reads[i][j]) / (frequencies[i][j] * frequencies[i][j]);
+                    buffer[i][j] += ((float) total_reads[i][j] - variant_reads[i][j]) / ((1.0f - frequencies[i][j]) * (1.0f - frequencies[i][j]));
+                }
             }
         }
 
         // Step 1. Find decent initial solution
-        l2_solver = L2Solver::Solver(clone_tree, vertex_map, frequency_matrix, weight_matrix, root);
+        l2_solver = L2Solver::Solver(clone_tree, vertex_map, frequencies, buffer, root);
         l2_solver.initialize();
-        // l2_solver.solve();
+        l2_solver.solve();
 
-        // frequencies = l2_solver.frequencies;
-        // usages = left_inverse(clone_tree, vertex_map, frequencies);
-        // residual_update();
-        // objective_update();
+        frequencies = l2_solver.frequencies;
+        usages = left_inverse(clone_tree, vertex_map, frequencies);
+        objective_update();
+
+        for (size_t i = 0; i < buffer.size(); i++) {
+            for (size_t j = 0; j < buffer[i].size(); j++) {
+                buffer[i][j] = 1.0f;
+            }
+        }
+
+        l2_solver.update_weight_matrix(buffer);
 
         for (int i = 0; i < num_admm_iterations; i++) {
-            std::cout << "Objective: " << objective << std::endl;
-            auto ws = left_multiply(clone_tree, root, vertex_map, usages);
+            left_multiply(clone_tree, root, vertex_map, usages, buffer);
             float primal_residual = 0.0;
             for (size_t i = 0; i < variant_reads.size(); i++) {
                 for (size_t j = 0; j < variant_reads[i].size(); j++) {
-                    primal_residual += std::abs(ws[i][j] - frequencies[i][j]);
+                    primal_residual += std::abs(buffer[i][j] - frequencies[i][j]);
                 }
             }
-            std::cout << "Primal Residual: " << primal_residual << std::endl;
 
-            frequency_update();          // ADMM Step 1
-            usage_update(weight_matrix); // ADMM Step 2
-            residual_update();           // ADMM Step 3
+            primal_residual = primal_residual / (variant_reads.size() * sqrt(variant_reads[0].size()));
+
+            spdlog::info("ADMM Iteration: {}, Objective: {}, Normalized Primal Residual: {}", i, objective, primal_residual);
+
+            frequency_update(); // ADMM Step 1
+            usage_update();     // ADMM Step 2
+            residual_update();  // ADMM Step 3
 
             objective_update(); 
         }
@@ -55,7 +68,8 @@ namespace SeparableADMM {
     }
 
     void Solver::frequency_update() {
-        auto ws = left_multiply(clone_tree, root, vertex_map, usages);
+        auto &ws = buffer;
+        left_multiply(clone_tree, root, vertex_map, usages, buffer);
         for (size_t i = 0; i < ws.size(); i++) {
             for (size_t j = 0; j < ws[i].size(); j++) {
                 ws[i][j] += residuals[i][j];
@@ -64,12 +78,6 @@ namespace SeparableADMM {
         for (size_t i = 0; i < frequencies.size(); i++) {
             for (size_t j = 0; j < frequencies[i].size(); j++) {
                 double freq = compute_minimizer(rho, ws[i][j], variant_reads[i][j], total_reads[i][j]);
-                // std::cout << "Frequency: " << freq << std::endl;
-                // std::cout << "RHO: " << rho << std::endl;
-                // std::cout << "WS: " << ws[i][j] << std::endl;
-                // std::cout << "Variant Reads: " << variant_reads[i][j] << std::endl;
-                // std::cout << "Total Reads: " << total_reads[i][j] << std::endl;
-                // std::cout << "-------------------" << std::endl;
                 if (freq < frequency_clamp) {
                     freq = frequency_clamp;
                 } else if (freq > 1.0f - frequency_clamp) {
@@ -81,21 +89,21 @@ namespace SeparableADMM {
         }
     }
 
-    void Solver::usage_update(const std::vector<std::vector<float>>& weight_matrix) {
-        std::vector<std::vector<float>> frequency_matrix = frequencies;
+    void Solver::usage_update() {
+        auto &frequency_matrix = buffer;
         for (size_t i = 0; i < frequency_matrix.size(); i++) {
             for (size_t j = 0; j < frequency_matrix[i].size(); j++) {
-                frequency_matrix[i][j] -= residuals[i][j];
+                frequency_matrix[i][j] = frequencies[i][j] - residuals[i][j];
             }
         }
         l2_solver.update_frequency_matrix(frequency_matrix);
         l2_solver.solve();
-        usages = left_inverse(clone_tree, vertex_map, l2_solver.frequencies);
+        left_inverse(clone_tree, vertex_map, l2_solver.frequencies, usages);
     }
 
     void Solver::residual_update() {
-        auto ws = left_multiply(clone_tree, root, vertex_map, usages);
-            
+        auto &ws = buffer;
+        left_multiply(clone_tree, root, vertex_map, usages, ws);
         for (size_t i = 0; i < ws.size(); i++) {
             for (size_t j = 0; j < ws[i].size(); j++) {
                 residuals[i][j] += ws[i][j] - frequencies[i][j];
@@ -104,7 +112,8 @@ namespace SeparableADMM {
     }
 
     void Solver::objective_update() {
-        auto frequency_matrix = left_multiply(clone_tree, root, vertex_map, usages);
+        auto &frequency_matrix = buffer;
+        left_multiply(clone_tree, root, vertex_map, usages, buffer);
         float obj = 0.0;
         for (size_t i = 0; i < variant_reads.size(); i++) {
             for (size_t j = 0; j < variant_reads[i].size(); j++) {
