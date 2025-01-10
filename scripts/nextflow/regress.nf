@@ -6,15 +6,14 @@ params.make_projection_input = "${params.proj_dir}/scripts/processing/make_proje
 
 params.projection_command = "${params.proj_dir}/dependencies/projection/projection"
 params.fastppm_command    = "${params.proj_dir}/build/src/fastppm-cli"
-params.cvxopt_command     = "${params.proj_dir}/scripts/cvxopt_binom_regression.py"
-params.gurobi_command     = "${params.proj_dir}/scripts/gurobi_lp_binom_regression.py"
+params.cvxpy_command      = "${params.proj_dir}/scripts/reference_regression.py"
 params.time_command       = "/usr/bin/time -v"
 
-params.nmutations  = [100, 500, 1000, 2500]
+params.nmutations  = [100, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]
 params.nsamples    = [500]
-params.seeds       = 1..20
+params.seeds       = 1..5
 params.coverage    = [30, 100, 1000]
-params.nsegments   = [50, 100]//, 1000] //, 10000]
+params.nsegments   = [50, 100]
 
 process regress_l2_projection {
     cpus 1
@@ -75,6 +74,25 @@ process regress_binom_fastppm_binomial {
     """
 }
 
+process regress_binom_fastppm_binomial_admm {
+    cpus 1
+    memory '32 GB'
+    time '4h'
+
+    scratch true
+    publishDir "${params.output_dir}/fastppm_binomial_admm/${id}/", mode: 'copy', overwrite: true
+
+    input:
+        tuple path(clone_tree), path(variant_matrix), path(total_matrix), val(id)
+
+    output:
+        tuple path("output.json"), path("timing.txt"), val(id)
+
+    """
+    ${params.time_command} '${params.fastppm_command}' -l binomial_admm -v ${variant_matrix} -d ${total_matrix} -t ${clone_tree} -o output.json 2>> timing.txt
+    """
+}
+
 process regress_binom_fastppm_binomial_K {
     cpus 1
     memory '32 GB'
@@ -94,42 +112,24 @@ process regress_binom_fastppm_binomial_K {
     """
 }
 
-process regress_binom_cvxopt {
+process reference_regression {
     cpus 1
     memory '32 GB'
     time '4h'
+    errorStrategy 'ignore'
 
-    scratch true
-    publishDir "${params.output_dir}/cvxopt_binomial/${id}/", mode: 'copy', overwrite: true
+    stageInMode 'copy'
+    publishDir "${params.output_dir}/cvxpy_${algorithm}_${loss}/${id}/", mode: 'copy', overwrite: true
 
     input:
-        tuple path(clone_tree), path(variant_matrix), path(total_matrix), val(id)
+        tuple path(clone_tree), path(variant_matrix), path(total_matrix), val(algorithm), val(loss), val(id)
 
     output:
         tuple path("output.json"), path("timing.txt"), val(id)
 
     """
-    ${params.time_command} python '${params.cvxopt_command}' ${variant_matrix} ${total_matrix} ${clone_tree} > output.json 2>> timing.txt
-    """
-}
-
-process regress_binom_gurobi {
-    cpus 1
-    memory '32 GB'
-    time '4h'
-
-    scratch true
-    publishDir "${params.output_dir}/gurobi_binomial_K/${id}/", mode: 'copy', overwrite: true
-
-    input:
-        tuple path(clone_tree), path(variant_matrix), path(total_matrix), val(segments), val(id)
-
-    output:
-        tuple path("output.json"), path("timing.txt"), val(id)
-
-    """
-    module load gurobi
-    ${params.time_command} python '${params.gurobi_command}' ${variant_matrix} ${total_matrix} ${clone_tree} ${segments} > output.json 2>> timing.txt
+    export MOSEKLM_LICENSE_FILE=/n/fs/grad/hs2435
+    ${params.time_command} python '${params.cvxpy_command}' ${variant_matrix} ${total_matrix} ${clone_tree} -s ${algorithm} -l ${loss} > output.json 2>> timing.txt
     """
 }
 
@@ -139,9 +139,11 @@ workflow {
                                .combine(channel.fromList(params.coverage))
                                .combine(channel.fromList(params.seeds))
                                .combine(channel.fromList(params.nsegments))
+                               .combine(channel.fromList(["MOSEK", "CLARABEL"]))
+                               .combine(channel.fromList(["l2", "binomial"]))
 
     /* Load simulated data. */
-    simulations = parameter_channel | map { nmuts, nsamples, coverage, seed, nsegments ->
+    simulations = parameter_channel | map { nmuts, nsamples, coverage, seed, nsegments, algorithm, loss ->
         id             = "n${nmuts}_s${nsamples}_c${coverage}_r${seed}"
         prefix         = "${params.simulation_dir}/n${nmuts}_s${nsamples}_c${coverage}_r${seed}"
         freq_matrix    = "${prefix}/sim_frequency_matrix.txt"
@@ -151,14 +153,14 @@ workflow {
         usage_matrix   = "${prefix}/sim_usage_matrix.txt"
         variant_matrix = "${prefix}/sim_variant_matrix.txt"
         weight_matrix  = "${prefix}/sim_weight_matrix.txt"
-        [tree, variant_matrix, total_matrix, freq_matrix, weight_matrix, nsegments, id]
+        [tree, variant_matrix, total_matrix, freq_matrix, weight_matrix, nsegments, algorithm, loss, id]
     }
 
     /* Select required files and run methods. */
-    // simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_fastppm_binomial_K
-    // simulations | map { [it[0], it[1], it[2], it[5], "${it[6]}_k${it[5]}"] } | regress_binom_gurobi
-    // simulations | map { [it[0], it[1], it[2], it[6]] } | unique | regress_binom_cvxopt
-    // simulations | map { [it[0], it[1], it[2], it[6]] } | unique | regress_binom_fastppm_binomial
-    // simulations | map { [it[0], it[3], it[4], it[6]] } | unique | regress_l2_projection 
-    simulations | map { [it[0], it[1], it[2], it[4], it[6]] } | unique | regress_l2_fastppm 
+    simulations | map { [it[0], it[1], it[2], it[6], it[7], it[8]] } | unique| reference_regression
+    simulations | map { [it[0], it[1], it[2], it[5], "${it[8]}_k${it[5]}"] } | unique | regress_binom_fastppm_binomial_K
+    simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial
+    simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial_admm
+    // simulations | map { [it[0], it[3], it[4], it[8]] } | unique | regress_l2_projection 
+    // simulations | map { [it[0], it[1], it[2], it[4], it[8]] } | unique | regress_l2_fastppm 
 }

@@ -11,32 +11,56 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
         V = V.reshape(1, -1)
         print(V)
     m, n = V.shape
-    f = cp.Variable((m, n))
+    f = cp.Variable(n)
+
     if loss == "l2":
         constraints = [f >= 0, f <= 1]
     else:
         constraints = [f >= eps, f <= 1 - eps]
+
     children = [[] for _ in range(n)]
     for node in tree.nodes():
         children[node] = list(tree.successors(node))
     for j in range(n):
         if children[j]:
-            constraints.append(cp.sum(f[:, children[j]], axis=1) <= f[:, j])
+            constraints.append(cp.sum(f[children[j]]) <= f[j])
+
     root_nodes = [node for node in tree.nodes() if tree.in_degree(node) == 0]
     for r_ in root_nodes:
-        constraints.append(f[:, r_] <= 1.0)
-    T = V + R
+        constraints.append(f[r_] <= 1.0)
+
+    obj_value = 0
+    runtime = 0
+    failed_subproblem = False
     if loss == "l2":
-        F = np.divide(V, T, out=np.zeros_like(V), where=T != 0)
-        obj = cp.sum_squares(f - F)
+        F_obs = cp.Parameter(n)
+        obj = cp.sum_squares(f - F_obs)
+        prob = cp.Problem(cp.Minimize(obj), constraints)
+
+        for i in range(m):
+            T = V[i,:] + R[i,:]
+            F = np.divide(V[i], T, out=np.zeros_like(V[i]), where=T != 0)
+            F_obs.value = F
+            prob.solve(solver=solver)
+            obj_value += prob.value
+            runtime += prob.solver_stats.solve_time
     else:
-        obj = -cp.sum(cp.multiply(V, cp.log(f)) + cp.multiply(R, cp.log(1 - f)))
-    prob = cp.Problem(cp.Minimize(obj), constraints)
-    prob.solve(solver=solver, verbose=True)
+        V_obs = cp.Parameter(n, nonneg=True)
+        R_obs = cp.Parameter(n, nonneg=True)
+        obj = -cp.sum(cp.multiply(V_obs, cp.log(f)) + cp.multiply(R_obs, cp.log(1 - f)))
+        
+        for i in range(m):
+            V_obs.value = V[i]
+            R_obs.value = R[i]
+            prob = cp.Problem(cp.Minimize(obj), constraints)
+            prob.solve(solver=solver)
+            obj_value += prob.value
+            runtime += prob.solver_stats.solve_time
+
     return {
-        "status": prob.status,
-        "objective": prob.value,
-        "runtime": prob.solver_stats.solve_time # don't measure compilation time
+        "failed_subproblem": failed_subproblem,
+        "objective": obj_value,
+        "runtime": runtime # don't measure compilation time
     }
 
 def main():
@@ -55,6 +79,7 @@ def main():
 
     tree = nx.read_adjlist(args.tree, nodetype=int, create_using=nx.DiGraph())
     result = solve_cvxpy(V, R, tree, args.solver, 1e-7, args.loss)
+    print(result)
     print(json.dumps(result))
 
 if __name__ == "__main__":
