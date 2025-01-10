@@ -30,7 +30,7 @@ process regress_l2_projection {
         tuple path("output.txt"), path("timing.txt"), val(id)
 
     """
-    python '${params.make_projection_input}' ${clone_tree} ${freq_matrix} --weight_matrix ${weight_matrix} > input.txt
+    python '${params.make_projection_input}' ${clone_tree} ${freq_matrix} > input.txt
     /usr/bin/time -v '${params.projection_command}' input.txt output.txt 1 2>> timing.txt
     """
 }
@@ -50,7 +50,7 @@ process regress_l2_fastppm {
         tuple path("output.json"), path("timing.txt"), val(id)
 
     """
-    ${params.time_command} '${params.fastppm_command}' -t ${clone_tree} -v ${variant_matrix} -d ${total_matrix} -w ${weight_matrix} \
+    ${params.time_command} '${params.fastppm_command}' -t ${clone_tree} -v ${variant_matrix} -d ${total_matrix} \
                            --output output.json -l l2 2>> timing.txt
     """
 }
@@ -139,7 +139,7 @@ workflow {
                                .combine(channel.fromList(params.coverage))
                                .combine(channel.fromList(params.seeds))
                                .combine(channel.fromList(params.nsegments))
-                               .combine(channel.fromList(["MOSEK", "CLARABEL"]))
+                               .combine(channel.fromList(["MOSEK", "CLARABEL", "ECOS"]))
                                .combine(channel.fromList(["l2", "binomial"]))
 
     /* Load simulated data. */
@@ -157,10 +157,10 @@ workflow {
     }
 
     /* Select required files and run methods. */
-    simulations | map { [it[0], it[1], it[2], it[6], it[7], it[8]] } | unique| reference_regression
-    simulations | map { [it[0], it[1], it[2], it[5], "${it[8]}_k${it[5]}"] } | unique | regress_binom_fastppm_binomial_K
-    simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial
-    simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial_admm
-    // simulations | map { [it[0], it[3], it[4], it[8]] } | unique | regress_l2_projection 
-    // simulations | map { [it[0], it[1], it[2], it[4], it[8]] } | unique | regress_l2_fastppm 
+    // simulations | map { [it[0], it[1], it[2], it[6], it[7], it[8]] } | unique| reference_regression
+    // simulations | map { [it[0], it[1], it[2], it[5], "${it[8]}_k${it[5]}"] } | unique | regress_binom_fastppm_binomial_K
+    // simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial
+    // simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial_admm
+    simulations | map { [it[0], it[3], it[4], it[8]] } | unique | regress_l2_projection 
+    simulations | map { [it[0], it[1], it[2], it[4], it[8]] } | unique | regress_l2_fastppm 
 }

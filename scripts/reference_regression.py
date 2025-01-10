@@ -41,7 +41,11 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
             T = V[i,:] + R[i,:]
             F = np.divide(V[i], T, out=np.zeros_like(V[i]), where=T != 0)
             F_obs.value = F
-            prob.solve(solver=solver)
+            try:
+                prob.solve(solver=solver)
+            except cp.error.SolverError:
+                failed_subproblem = True
+                break
             obj_value += prob.value
             runtime += prob.solver_stats.solve_time
     else:
@@ -53,7 +57,11 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
             V_obs.value = V[i]
             R_obs.value = R[i]
             prob = cp.Problem(cp.Minimize(obj), constraints)
-            prob.solve(solver=solver)
+            try:
+                prob.solve(solver=solver)
+            except cp.error.SolverError:
+                failed_subproblem = True
+                break
             obj_value += prob.value
             runtime += prob.solver_stats.solve_time
 
@@ -79,7 +87,6 @@ def main():
 
     tree = nx.read_adjlist(args.tree, nodetype=int, create_using=nx.DiGraph())
     result = solve_cvxpy(V, R, tree, args.solver, 1e-7, args.loss)
-    print(result)
     print(json.dumps(result))
 
 if __name__ == "__main__":
