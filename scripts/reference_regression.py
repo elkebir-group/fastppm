@@ -9,25 +9,14 @@ import cvxpy as cp
 def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
     if len(V.shape) == 1:
         V = V.reshape(1, -1)
-        print(V)
+
     m, n = V.shape
+
     f = cp.Variable(n)
+    u = cp.Variable(n)
 
-    if loss == "l2":
-        constraints = [f >= 0, f <= 1]
-    else:
-        constraints = [f >= eps, f <= 1 - eps]
-
-    children = [[] for _ in range(n)]
-    for node in tree.nodes():
-        children[node] = list(tree.successors(node))
-    for j in range(n):
-        if children[j]:
-            constraints.append(cp.sum(f[children[j]]) <= f[j])
-
-    root_nodes = [node for node in tree.nodes() if tree.in_degree(node) == 0]
-    for r_ in root_nodes:
-        constraints.append(f[r_] <= 1.0)
+    B = construct_clonal_matrix(tree)
+    constraints = [u >= 0, cp.sum(u) <= 1, cp.matmul(u, B) == f]
 
     obj_value = 0
     runtime = 0
@@ -70,6 +59,20 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
         "objective": obj_value,
         "runtime": runtime # don't measure compilation time
     }
+
+"""
+Constructs the clonal matrix from a clonal tree.
+"""
+def construct_clonal_matrix(tree):
+    n = len(tree.nodes)
+
+    B = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            if nx.has_path(tree, i, j):
+                B[j, i] = 1
+
+    return B
 
 def main():
     parser = argparse.ArgumentParser()

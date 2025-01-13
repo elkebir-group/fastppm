@@ -66,7 +66,8 @@ def load_files(directory):
     
                 try:
                     res = fastppm.regress_counts(adj_list, variant_matrix.tolist(), total_matrix.tolist(), loss_function='binomial')
-                    negative_log_likelihood = res['objective']
+                    negative_log_likelihood = 0
+                    #negative_log_likelihood = res['objective']
                 except:
                     print('Error in', algorithm, subdir)
                     valid_inferred_tree = False
@@ -88,7 +89,7 @@ def load_files(directory):
             closure_false_negatives = len(set(true_tree_closure.edges()) - set(inferred_tree_closure.edges()))
             closure_f1_score = 2 * closure_true_positives / (2 * closure_true_positives + closure_false_positives + closure_false_negatives)
 
-            data.append({
+            row = {
                 'algorithm': algorithm,
                 'n': int(n),
                 's': int(s),
@@ -104,7 +105,10 @@ def load_files(directory):
                 'ancestor_descendant_distance': ancestor_descendant_distance,
                 'normalized_ancestor_descendant_distance': normalized_ancestor_descendant_distance,
                 'f1_score_closure': closure_f1_score,
-            })
+            }
+
+            print(row)
+            data.append(row)
             
     return pd.DataFrame(data)
 

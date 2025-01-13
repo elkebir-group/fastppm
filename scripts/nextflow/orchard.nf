@@ -5,16 +5,16 @@ params.create_orchard_input = "/n/fs/ragr-research/projects/fastppm/scripts/proc
 params.parse_orchard_output = "/n/fs/ragr-research/projects/fastppm/scripts/processing/parse_orchard_output.py"
 params.python               = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/breaked/bin/python"
 
-params.nmutations = [10, 25, 50, 100]
-params.nsamples   = [5, 10, 20, 50]
+params.nmutations = [100, 250, 500]
+params.nsamples   = [50, 100]
 params.coverage   = [30, 100, 1000]
-params.seeds      = 1..10            // 20
+params.seeds      = 1..10
 params.loss       = ["l2"]
 
 process orchard_star {
     cpus 1
     memory '8 GB'
-    time '59m'
+    time '24h'
 
     publishDir "nextflow_results/search/orchard-star-${loss}/${id}", mode: 'copy', overwrite: true
 
@@ -35,7 +35,7 @@ process orchard_star {
 process orchard {
     cpus 1
     memory '8 GB'
-    time '59m'
+    time '24h'
 
     publishDir "nextflow_results/search/orchard/${id}", mode: 'copy', overwrite: true
 
