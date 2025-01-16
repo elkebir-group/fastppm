@@ -19,6 +19,7 @@ namespace SeparableADMM {
             int num_admm_iterations;
             double rho;
             float frequency_clamp;
+            bool verbose;
 
             std::function<double(double,int,int)> compute_obj;
             std::function<double(double,double,int,int)> compute_minimizer;
@@ -47,13 +48,15 @@ namespace SeparableADMM {
                 int root,
                 int num_admm_iterations,
                 float rho,
-                float frequency_clamp
+                float frequency_clamp,
+                bool verbose = false
             ) : clone_tree(clone_tree), 
                 vertex_map(vertex_map), 
                 root(root), 
                 num_admm_iterations(num_admm_iterations),
                 rho(rho),
                 frequency_clamp(frequency_clamp),
+                verbose(verbose),
                 compute_obj(compute_obj),
                 compute_minimizer(compute_minimizer)
             {

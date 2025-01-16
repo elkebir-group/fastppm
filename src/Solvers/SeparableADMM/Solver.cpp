@@ -55,7 +55,9 @@ namespace SeparableADMM {
 
             primal_residual = primal_residual / (variant_reads.size() * sqrt(variant_reads[0].size()));
 
-            spdlog::info("ADMM Iteration: {}, Objective: {}, Normalized Primal Residual: {}", i, objective, primal_residual);
+            if (verbose) {
+                spdlog::info("ADMM Iteration: {}, Objective: {}, Normalized Primal Residual: {}", i, objective, primal_residual);
+            }
 
             frequency_update(); // ADMM Step 1
             usage_update();     // ADMM Step 2

@@ -4,6 +4,9 @@ params.output_dir         = "${params.proj_dir}/nextflow_results/regress"
 
 params.make_projection_input = "${params.proj_dir}/scripts/processing/make_projection_input.py" 
 
+params.cvxopt_python = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/sapling/bin/python"
+
+params.cvxopt_command     = "${params.proj_dir}/scripts/cvxopt_binom_regression.py"
 params.projection_command = "${params.proj_dir}/dependencies/projection/projection"
 params.fastppm_command    = "${params.proj_dir}/build/src/fastppm-cli"
 params.cvxpy_command      = "${params.proj_dir}/scripts/reference_regression.py"
@@ -115,7 +118,7 @@ process regress_binom_fastppm_binomial_K {
 process reference_regression {
     cpus 1
     memory '32 GB'
-    time '4h'
+    time '59m'
     errorStrategy 'ignore'
 
     stageInMode 'copy'
@@ -130,6 +133,26 @@ process reference_regression {
     """
     export MOSEKLM_LICENSE_FILE=/n/fs/grad/hs2435
     ${params.time_command} python '${params.cvxpy_command}' ${variant_matrix} ${total_matrix} ${clone_tree} -s ${algorithm} -l ${loss} > output.json 2>> timing.txt
+    """
+}
+
+process regress_binom_cvxopt {
+    cpus 1
+    memory '8 GB'
+    time '4h'
+    clusterOptions '--account=raphael'
+
+    scratch true
+    publishDir "${params.output_dir}/cvxopt_binomial/${id}/", mode: 'copy', overwrite: true
+
+    input:
+        tuple path(clone_tree), path(variant_matrix), path(total_matrix), val(id)
+
+    output:
+        tuple path("output.json"), path("timing.txt"), val(id)
+
+    """
+    ${params.time_command} ${params.cvxopt_python} '${params.cvxopt_command}' ${variant_matrix} ${total_matrix} ${clone_tree} > output.json 2>> timing.txt
     """
 }
 
@@ -157,10 +180,11 @@ workflow {
     }
 
     /* Select required files and run methods. */
-    // simulations | map { [it[0], it[1], it[2], it[6], it[7], it[8]] } | unique| reference_regression
+    simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_cvxopt
+    // simulations | map { [it[0], it[1], it[2], it[6], it[7], it[8]] } | unique | reference_regression
     // simulations | map { [it[0], it[1], it[2], it[5], "${it[8]}_k${it[5]}"] } | unique | regress_binom_fastppm_binomial_K
     // simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial
     // simulations | map { [it[0], it[1], it[2], it[8]] } | unique | regress_binom_fastppm_binomial_admm
-    simulations | map { [it[0], it[3], it[4], it[8]] } | unique | regress_l2_projection 
-    simulations | map { [it[0], it[1], it[2], it[4], it[8]] } | unique | regress_l2_fastppm 
+    // simulations | map { [it[0], it[3], it[4], it[8]] } | unique | regress_l2_projection 
+    // simulations | map { [it[0], it[1], it[2], it[4], it[8]] } | unique | regress_l2_fastppm 
 }

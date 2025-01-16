@@ -24,7 +24,7 @@ def load_files(directory):
                 elapsed_time = match.groups()[0]
                 elapsed_time = sum(x * float(t) for x, t in zip([1, 60, 3600], elapsed_time.split(":")[::-1]))
 
-            true_tree     = nx.read_adjlist(os.path.join(SIMULATION_DIR, subdir, 'sim_tree.txt'))
+            true_tree = nx.read_adjlist(os.path.join(SIMULATION_DIR, subdir, 'sim_tree.txt'), create_using=nx.DiGraph())
 
             if 'sapling' in algorithm:
                 inferred_tree_fname = os.path.join(directory, algorithm, subdir, 'sapling_output.txt')
@@ -71,7 +71,6 @@ def load_files(directory):
                 except:
                     print('Error in', algorithm, subdir)
                     valid_inferred_tree = False
-
 
             true_positives = len(set(true_tree.edges()) & set(inferred_tree.edges()))
             false_positives = len(set(inferred_tree.edges()) - set(true_tree.edges()))

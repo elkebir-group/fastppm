@@ -5,16 +5,17 @@ params.create_orchard_input = "/n/fs/ragr-research/projects/fastppm/scripts/proc
 params.parse_orchard_output = "/n/fs/ragr-research/projects/fastppm/scripts/processing/parse_orchard_output.py"
 params.python               = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/breaked/bin/python"
 
-params.nmutations = [100, 250, 500]
+params.nmutations = [50, 100, 250, 500]
 params.nsamples   = [50, 100]
 params.coverage   = [30, 100, 1000]
-params.seeds      = 1..10
+params.seeds      = 1..5
 params.loss       = ["l2"]
 
 process orchard_star {
-    cpus 1
-    memory '8 GB'
-    time '24h'
+    cpus 8
+    memory '4 GB'
+    time '12h'
+    clusterOptions '--account=raphael'
 
     publishDir "nextflow_results/search/orchard-star-${loss}/${id}", mode: 'copy', overwrite: true
 
@@ -27,15 +28,16 @@ process orchard_star {
     """
     ${params.python} ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
     /usr/bin/time -v ${params.python} ${params.orchard_star} orchard_mutations.ssm orchard_params.json results.npz \
-                  -l ${loss} -k 1 -f 250 -n 1 -p 2> timing.txt
+                  -l ${loss} -k 1 -f 20 -n 8 -p 2> timing.txt
     ${params.python} ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }
 
 process orchard {
-    cpus 1
-    memory '8 GB'
-    time '24h'
+    cpus 8
+    memory '4 GB'
+    time '12h'
+    clusterOptions '--account=raphael'
 
     publishDir "nextflow_results/search/orchard/${id}", mode: 'copy', overwrite: true
 
@@ -47,7 +49,7 @@ process orchard {
         
     """
     python ${params.create_orchard_input} ${variant_matrix} ${total_matrix} -o orchard
-    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 1 -f 250 -n 1 -p 2> timing.txt
+    /usr/bin/time -v python ${params.orchard} orchard_mutations.ssm orchard_params.json results.npz -k 1 -f 20 -n 8 -p 2> timing.txt
     python ${params.parse_orchard_output} results.npz --output tree.txt
     """
 }

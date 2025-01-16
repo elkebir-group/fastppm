@@ -1,18 +1,20 @@
 params.simulation_dir       = "/n/fs/ragr-research/projects/fastppm-data/simulations"
 params.sapling              = "/n/fs/ragr-research/projects/fastppm/dependencies/sapling-star/main.py"
 params.create_sapling_input = "/n/fs/ragr-research/projects/fastppm/scripts/processing/make_sapling_input.py"
+params.sapling_python       = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/sapling/bin/python"
 params.python               = "/n/fs/ragr-data/users/schmidt/miniconda3/envs/breaked/bin/python"
 
-params.nmutations = [10, 25, 50]
-params.nsamples   = [5, 10, 20]
+params.nmutations = [500] // [50, 100, 250, 500]
+params.nsamples   = [50, 100]
 params.coverage   = [30, 100, 1000]
-params.seeds      = 1..10            // 20
+params.seeds      = 1..5
 params.algorithm  = ["fastppm"]
 
 process sapling {
     cpus 1
-    memory '8 GB'
-    time '4h'
+    memory '4 GB'
+    time '12h'
+    clusterOptions '--account=raphael'
 
     publishDir "nextflow_results/search/sapling-${algorithm}/${id}", mode: 'copy', overwrite: true
 
@@ -23,11 +25,10 @@ process sapling {
         tuple val(id), path("sapling_output.txt"), path("timing.txt")
         
     """
-    python ${params.create_sapling_input} ${variant_matrix} ${total_matrix} > sapling_input.txt
-    /usr/bin/time -v python ${params.sapling} -f sapling_input.txt -o sapling_output.txt -a 1 -L ${algorithm} -t 1 2> timing.txt
+    ${params.python} ${params.create_sapling_input} ${variant_matrix} ${total_matrix} > sapling_input.txt
+    /usr/bin/time -v ${params.sapling_python} ${params.sapling} -f sapling_input.txt -o sapling_output.txt -a 1 -L ${algorithm} -t 1 2> timing.txt
     """
 }
-
 
 workflow {
     parameter_channel = channel.fromList(params.nmutations)

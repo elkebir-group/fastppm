@@ -29,6 +29,7 @@ def process_instance(directory, algorithm, subdir):
         system_time = float(match.group(1))
         elapsed_time = user_time + system_time
 
+    is_success = True
     nll = None
     if algorithm == "projection_l2":
         with open(os.path.join(directory, algorithm, subdir, 'output.txt')) as f:
@@ -38,15 +39,20 @@ def process_instance(directory, algorithm, subdir):
             print(os.path.join(directory, algorithm, subdir, 'output.json'))
             res = json.load(f)
             objective = res['objective']
+            runtime = res['runtime']
 
-        if 'l2' not in algorithm:
-            frequency_matrix = np.array(res['frequency_matrix'])
-            variant_matrix   = np.loadtxt(f"{simulated_data_dir}/n{n}_s{s}_c{c}_r{r}/sim_variant_matrix.txt")
-            total_matrix     = np.loadtxt(f"{simulated_data_dir}/n{n}_s{s}_c{c}_r{r}/sim_total_matrix.txt")
-            nll = np.log(frequency_matrix, out=np.zeros_like(frequency_matrix), where=(frequency_matrix!=0)) * variant_matrix 
-            nll += (total_matrix - variant_matrix) * np.log(1 - frequency_matrix, out=np.zeros_like(frequency_matrix), where=(frequency_matrix!=1))
-            nll = -np.sum(nll)
-            print(nll)
+        if 'cvxpy' in algorithm:
+            is_success = not res['failed_subproblem']
+
+        if 'projection' in algorithm:
+            runtime = elapsed_time
+            # frequency_matrix = np.array(res['frequency_matrix'])
+            # variant_matrix   = np.loadtxt(f"{simulated_data_dir}/n{n}_s{s}_c{c}_r{r}/sim_variant_matrix.txt")
+            # total_matrix     = np.loadtxt(f"{simulated_data_dir}/n{n}_s{s}_c{c}_r{r}/sim_total_matrix.txt")
+            # nll = np.log(frequency_matrix, out=np.zeros_like(frequency_matrix), where=(frequency_matrix!=0)) * variant_matrix 
+            # nll += (total_matrix - variant_matrix) * np.log(1 - frequency_matrix, out=np.zeros_like(frequency_matrix), where=(frequency_matrix!=1))
+            # nll = -np.sum(nll)
+            # print(nll)
 
     return {
         'n': n,
@@ -57,7 +63,7 @@ def process_instance(directory, algorithm, subdir):
         'algorithm': algorithm,
         'elapsed_time': elapsed_time,
         'objective': objective,
-        'nll': nll
+        'is_successful': is_success,
     }
 
 def main():

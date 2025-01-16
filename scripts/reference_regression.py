@@ -6,7 +6,7 @@ import numpy as np
 import networkx as nx
 import cvxpy as cp
 
-def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
+def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-4, loss="binomial"):
     if len(V.shape) == 1:
         V = V.reshape(1, -1)
 
@@ -16,7 +16,10 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
     u = cp.Variable(n)
 
     B = construct_clonal_matrix(tree)
-    constraints = [u >= 0, cp.sum(u) <= 1, cp.matmul(u, B) == f]
+    if loss == "l2":
+        constraints = [u >= 0, cp.sum(u) <= 1, cp.matmul(u, B) == f]
+    else:
+        constraints = [u >= 0, cp.sum(u) <= 1, cp.matmul(u, B) == f, f >= eps, f <= 1 - eps]
 
     obj_value = 0
     runtime = 0
@@ -41,13 +44,21 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
         V_obs = cp.Parameter(n, nonneg=True)
         R_obs = cp.Parameter(n, nonneg=True)
         obj = -cp.sum(cp.multiply(V_obs, cp.log(f)) + cp.multiply(R_obs, cp.log(1 - f)))
-        
+        prob = cp.Problem(cp.Minimize(obj), constraints)
+
         for i in range(m):
             V_obs.value = V[i]
             R_obs.value = R[i]
-            prob = cp.Problem(cp.Minimize(obj), constraints)
             try:
-                prob.solve(solver=solver)
+                if solver == 'CLARABEL':
+                    prob.solve(solver=solver, verbose=False, max_iter=200)
+                elif solver == 'MOSEK':
+                    prob.solve(solver=solver, verbose=False, accept_unknown=True)
+                elif solver == 'ECOS':
+                    prob.solve(solver=solver, verbose=False, max_iters=400)
+                elif solver == 'SCS':
+                    prob.solve(solver=solver, verbose=True)
+
             except cp.error.SolverError:
                 failed_subproblem = True
                 break
@@ -57,7 +68,7 @@ def solve_cvxpy(V, R, tree, solver="ECOS", eps=1e-7, loss="binomial"):
     return {
         "failed_subproblem": failed_subproblem,
         "objective": obj_value,
-        "runtime": runtime # don't measure compilation time
+        "runtime": runtime * 1000 # convert to milliseconds
     }
 
 """
@@ -79,7 +90,7 @@ def main():
     parser.add_argument("variant_matrix")
     parser.add_argument("total_matrix")
     parser.add_argument("tree")
-    parser.add_argument("-s", "--solver", choices=["ECOS", "CLARABEL", "MOSEK", "GUROBI"], default="ECOS")
+    parser.add_argument("-s", "--solver", choices=["ECOS", "CLARABEL", "MOSEK", "GUROBI", "SCS"], default="ECOS")
     parser.add_argument("-l", "--loss", choices=["binomial", "l2"], default="binomial")
     args = parser.parse_args()
 
