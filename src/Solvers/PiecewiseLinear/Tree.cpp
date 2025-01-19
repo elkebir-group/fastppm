@@ -6,7 +6,7 @@
 #include "Node.h"
 #include "Element.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 
 void Tree::init() {
     size = 0;

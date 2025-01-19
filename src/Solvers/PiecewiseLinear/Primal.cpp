@@ -5,7 +5,7 @@
 #include "Primal.h"
 #include <algorithm>
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 void Primal::update(real begin, real end, int _k, func_base * func) {
     k = _k;
     for (int i = 0; i <= k; i++) {

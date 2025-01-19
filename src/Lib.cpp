@@ -6,7 +6,7 @@
 #include "Lib.h"
 #include "CloneTree.h"
 #include "DiGraph.h"
-#include "Solvers/LogBinomialPiecewise/Solver.h"
+#include "Solvers/PiecewiseLinear/Solver.h"
 #include "Solvers/L2/Solver.h"
 #include "Solvers/SeparableADMM/Solver.h"
 
@@ -203,7 +203,7 @@ SolverResult log_binomial_fixed_solve(
             ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
         }
 
-        LogBinomialPiecewiseLinearSolver::Solver solver(K);
+        PiecewiseLinearSolver::SolverBinomial solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve(1e-4);
 
@@ -220,6 +220,7 @@ SolverResult log_binomial_fixed_solve(
     auto usage_matrix = left_inverse(clone_tree, vertex_map, frequency_matrix);
     return {runtime, objective, usage_matrix, frequency_matrix};
 }
+
 /* 
  * Solves the optimization problem using the binomial loss function
  * with Yuanyuan's progressive piecewise linear solver.
@@ -249,7 +250,7 @@ SolverResult log_binomial_solve(
             ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
         }
 
-        LogBinomialPiecewiseLinearSolver::Solver solver(K);
+        PiecewiseLinearSolver::SolverBinomial solver(K);
         solver.init(variant_matrix[i], ref_vector, link_list, root);
         objective += solver.solve_iteratively(0.75, 1e-4); // TODO: make these parameters configurable
         
@@ -267,3 +268,90 @@ SolverResult log_binomial_solve(
     return {runtime, objective, usage_matrix, frequency_matrix};
 }
 
+SolverResult log_beta_binomial_fixed_solve(
+        const std::vector<int>& vertex_map,
+        const std::vector<std::vector<int>>& variant_matrix,
+        const std::vector<std::vector<int>>& total_matrix,
+        const digraph<int>& clone_tree,
+        size_t root,
+        int K,
+        double s
+) {
+    auto edges = clone_tree.edges();
+    int n_clones = edges.size() + 1;
+    std::vector<std::list<int>> link_list(n_clones);
+    for (auto& [u, v] : edges) {
+        link_list[clone_tree[u].data].push_back(clone_tree[v].data);
+    }
+
+    std::vector<std::vector<float>> frequency_matrix;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    double objective = 0;
+    for (size_t i = 0; i < variant_matrix.size(); i++) {
+        std::vector<int> ref_vector(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
+        }
+
+        PiecewiseLinearSolver::SolverBetaBinomial solver(K, s);
+        solver.init(variant_matrix[i], ref_vector, link_list, root);
+        objective += solver.solve(1e-4);
+
+        std::vector<float> frequencies(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            frequencies[j] = solver.F[j];
+        }
+
+        frequency_matrix.push_back(frequencies);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    auto usage_matrix = left_inverse(clone_tree, vertex_map, frequency_matrix);
+    return {runtime, objective, usage_matrix, frequency_matrix};
+}
+
+SolverResult log_beta_binomial_solve(
+        const std::vector<int>& vertex_map,
+        const std::vector<std::vector<int>>& variant_matrix,
+        const std::vector<std::vector<int>>& total_matrix,
+        const digraph<int>& clone_tree,
+        size_t root,
+        int K,
+        double s
+) {
+    auto edges = clone_tree.edges();
+    int n_clones = edges.size() + 1;
+    std::vector<std::list<int>> link_list(n_clones);
+    for (auto& [u, v] : edges) {
+        link_list[clone_tree[u].data].push_back(clone_tree[v].data);
+    }
+
+    std::vector<std::vector<float>> frequency_matrix;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    float objective = 0;
+    for (size_t i = 0; i < variant_matrix.size(); i++) {
+        std::vector<int> ref_vector(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            ref_vector[j] = total_matrix[i][j] - variant_matrix[i][j];
+        }
+
+        PiecewiseLinearSolver::SolverBetaBinomial solver(K, s);
+        solver.init(variant_matrix[i], ref_vector, link_list, root);
+        objective += solver.solve_iteratively(0.75, 1e-4, 1e-4); // TODO: make these parameters configurable
+
+        std::vector<float> frequencies(variant_matrix[i].size(), 0);
+        for (size_t j = 0; j < variant_matrix[i].size(); j++) {
+            frequencies[j] = solver.F[j];
+        }
+
+        frequency_matrix.push_back(frequencies);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    auto usage_matrix = left_inverse(clone_tree, vertex_map, frequency_matrix);
+    return {runtime, objective, usage_matrix, frequency_matrix};
+}

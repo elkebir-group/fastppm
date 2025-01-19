@@ -10,7 +10,7 @@
 #include "Func.h"
 #include "Element.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 
 class Primal;
 

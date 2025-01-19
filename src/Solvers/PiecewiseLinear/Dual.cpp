@@ -5,7 +5,7 @@
 #include "Dual.h"
 #include "Primal.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 void Dual::dual_from_primal(const Primal &primal) {
     k = primal.k + 1;
     for (int i = 0; i < k - 1; i++) {

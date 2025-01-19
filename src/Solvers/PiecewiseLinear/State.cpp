@@ -14,7 +14,7 @@
 #include "Primal.h"
 #include "Dual.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 std::unordered_map<int, std::pair<real,real> > State::helper;
 std::unordered_map<int, real> State::helper_x, State::helper_y;
 

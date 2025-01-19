@@ -1,14 +1,14 @@
 # Build the fastppm library
 
 add_library(fastppm-lib STATIC 
-    Lib.cpp 
-    Solvers/LogBinomialPiecewise/Dual.cpp 
-    Solvers/LogBinomialPiecewise/Primal.cpp
-    Solvers/LogBinomialPiecewise/Solver.cpp
-    Solvers/LogBinomialPiecewise/Node.cpp
-    Solvers/LogBinomialPiecewise/State.cpp
-    Solvers/LogBinomialPiecewise/Tree.cpp
-    Solvers/LogBinomialPiecewise/Func.cpp
+    Lib.cpp
+    Solvers/PiecewiseLinear/Dual.cpp
+    Solvers/PiecewiseLinear/Primal.cpp
+    Solvers/PiecewiseLinear/Solver.cpp
+    Solvers/PiecewiseLinear/Node.cpp
+    Solvers/PiecewiseLinear/State.cpp
+    Solvers/PiecewiseLinear/Tree.cpp
+    Solvers/PiecewiseLinear/Func.cpp
     Solvers/SeparableADMM/Solver.cpp
     Solvers/L2/Solver.cpp
 )

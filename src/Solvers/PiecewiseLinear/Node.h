@@ -10,7 +10,7 @@
 
 #include "Func.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 class step_base;
 class state_base;
 class sum_base;

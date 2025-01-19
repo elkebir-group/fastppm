@@ -5,7 +5,7 @@
 #include "Node.h"
 #include "Element.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 void Node::sum() {
     std::vector<const state_base *> to_sum(children.size());
     int i=0;

@@ -58,4 +58,24 @@ SolverResult log_binomial_fixed_solve(
     int K
 );
 
+SolverResult log_beta_binomial_solve(
+        const std::vector<int>& vertex_map,
+        const std::vector<std::vector<int>>& variant_matrix,
+        const std::vector<std::vector<int>>& total_matrix,
+        const digraph<int>& clone_tree,
+        size_t root,
+        int K,
+        double s
+);
+
+SolverResult log_beta_binomial_fixed_solve(
+        const std::vector<int>& vertex_map,
+        const std::vector<std::vector<int>>& variant_matrix,
+        const std::vector<std::vector<int>>& total_matrix,
+        const digraph<int>& clone_tree,
+        size_t root,
+        int K,
+        double s
+);
+
 #endif

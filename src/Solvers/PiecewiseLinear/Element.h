@@ -7,7 +7,7 @@
 
 #include <vector>
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 class step_base{// Dual func
 public:
     virtual real backtrace_base(real x) const = 0;

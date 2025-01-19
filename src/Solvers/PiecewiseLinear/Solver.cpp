@@ -10,9 +10,11 @@
 #include "Tree.h"
 #include "Node.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 
-Solver::Solver(int n_intervals):n_intervals(n_intervals),n(T.size) {
+Solver::Solver(int n_intervals)
+  : n_intervals(n_intervals)
+  , n(T.size) {
 }
 
 void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
@@ -22,23 +24,30 @@ void Solver::init(const std::vector<int> &var, const std::vector<int> &ref,
         T.nodes[i].step_ptr = &duals[i];
         T.nodes[i].state_ptr = &states[i];
         T.nodes[i].sum_of_children = &sums[i];
-        funcs[i].var=(var[i]);
-        funcs[i].ref=(ref[i]);
+        func_i(i).var=(var[i]);
+        func_i(i).ref=(ref[i]);
         F[i] = 0.5;
     }
 }
 
 void Solver::init_range(std::unordered_map<int, real> &mid, real fu, double eps){
     for (int i = 0; i < n; i++){
-        if (funcs[i].var > 0) {
-            primals[i].update(std::max(mid[i]-fu, eps),std::min(mid[i]+fu,1.),n_intervals,&funcs[i]);
+        if (func_i(i).var > 0) {
+            primals[i].update(std::max(mid[i]-fu, eps),std::min(mid[i]+fu,1.),n_intervals,&func_i(i));
         }
-        else if (funcs[i].ref > 0) {
-            primals[i].update(std::max(mid[i]-fu, 0.),std::min(mid[i]+fu,1. - eps),n_intervals,&funcs[i]);
+        else if (func_i(i).ref > 0) {
+            primals[i].update(std::max(mid[i]-fu, 0.),std::min(mid[i]+fu,1. - eps),n_intervals,&func_i(i));
         }
         else {
-            primals[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,&funcs[i]);
+            primals[i].update(std::max(mid[i]-fu,0.),std::min(mid[i]+fu,1.),n_intervals,&func_i(i));
         }
+        duals[i].dual_from_primal(primals[i]);
+    }
+}
+
+void SolverBetaBinomial::init_range(std::unordered_map<int, real> &mid, real fu, double eps){
+    for (int i = 0; i < n; i++){
+        primals[i].update(std::max(mid[i]-fu,eps),std::min(mid[i]+fu,1.-eps),n_intervals,&func_i(i));
         duals[i].dual_from_primal(primals[i]);
     }
 }
@@ -63,7 +72,7 @@ void Solver::solve_F() {
 }
 
 real Solver::solve(real eps) {
-     real  ans;
+     real ans;
      init_range(F,0.51, eps);
      T.dfs(T.root);
      ans = answer();
@@ -73,7 +82,7 @@ real Solver::solve(real eps) {
      return ans;
 }
 
-real Solver::solve_iteratively(real frac, real obj) {
+real Solver::solve_iteratively(real frac, real obj, real eps) {
     // real range = 1, ans;
     // init_range(F,0.51);
     // T.dfs(T.root);
@@ -83,7 +92,7 @@ real Solver::solve_iteratively(real frac, real obj) {
     // return ans;
 
     real range = 1, ans;
-    init_range(F,0.51);
+    init_range(F,0.51, eps);
 
     do  {
         T.dfs(T.root);
@@ -91,7 +100,7 @@ real Solver::solve_iteratively(real frac, real obj) {
         T.dfs_BT(T.root, dual_0);
         solve_F();
         range = range*frac;
-        init_range(F,range/2);
+        init_range(F,range/2, eps);
     } while (range/n_intervals > obj);
 
     return ans;

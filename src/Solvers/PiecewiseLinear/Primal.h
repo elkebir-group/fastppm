@@ -9,7 +9,7 @@
 
 #include <unordered_map>
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 class Primal {// x Bounded on both end. //primal function
 public:
     int k; // n of intervals;

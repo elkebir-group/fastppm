@@ -4,7 +4,10 @@
 
 #include "Func.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
+
+real func_beta_binom_llh::precision = 100;
+
 //template<typename ctype>
 int binary_search_less(const std::unordered_map<int, ctype> & sorted_list, int size_of_list, const ctype &value){
     int l_idx = 0, r_idx = size_of_list, mid_idx = (size_of_list)>>1;

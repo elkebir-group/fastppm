@@ -8,7 +8,7 @@
 #include "Func.h"
 #include "Element.h"
 
-namespace LogBinomialPiecewiseLinearSolver {
+namespace PiecewiseLinearSolver {
 class Primal;
 class Dual:public step_base{//x not bounded. // dual function
 public:
