@@ -5,7 +5,7 @@ the fast estimation of the (unknown) frequency matrix $F \in [0,1]^{m \times n}$
 given variant and total read count matrices $$V,D \in \mathbb{N}^{m \times n}$$
 over a fixed n-clonal tree $\mathcal{T}$. `fastppm` provides support for
 estimation under a variety of convex loss functions such as the $\ell_1$ loss,
-the $\ell_2$ loss, and the negative log binomial loss. `fastppm` can be used
+the $\ell_2$ loss, the binomial loss, and the beta-binomial loss. `fastppm` can be used
 either as a command line tool or as a Python library.
 
 If you find this tool useful in your research, please cite the following paper:
@@ -51,20 +51,20 @@ to the $n$ columns of the variant and total read count matrices.
 
 The tool has the following usage format:
 ```
-Usage: fastppm [--help] --variant VAR [--version] --total VAR [--weights VAR] --tree VAR --output VAR [--root VAR] [--format VAR] [--loss VAR] [--segments VAR]
+Usage: fastppm [--help] --variant VAR [--version] --total VAR [--weights VAR] --tree VAR --output VAR [--format VAR] [--loss VAR] [--precision VAR] [--segments VAR]
 
 Optional arguments:
-  -h, --help      shows help message and exits
-  -v, --variant   Path to the variant read matrix file [required]
-  --version       prints version information and exits
-  -d, --total     Path to the total read matrix file [required]
-  -w, --weights   Path to the weights matrix file [nargs=0..1] [default: ""]
-  -t, --tree      Path to the tree file [required]
-  -o, --output    Path to the output file [required]
-  -r, --root      Root node of the tree [nargs=0..1] [default: 0]
-  -f, --format    Output format, either 'concise' or 'verbose' [nargs=0..1] [default: "concise"]
-  -l, --loss      Loss function L_i(.) to use for optimization [nargs=0..1] [default: "l2"]
-  -K, --segments  Number of segments, only used when loss function is 'binomial' or 'binomial_K' [nargs=0..1] [default: 10]
+  -h, --help       shows help message and exits
+  -v, --variant    Path to the variant read matrix file [required]
+  --version        prints version information and exits
+  -d, --total      Path to the total read matrix file [required]
+  -w, --weights    Path to the weights matrix file [nargs=0..1] [default: ""]
+  -t, --tree       Path to the tree file [required]
+  -o, --output     Path to the output file [required]
+  -f, --format     Output format, either 'concise' or 'verbose' [nargs=0..1] [default: "concise"]
+  -l, --loss       Loss function L_i(.) to use for optimization [nargs=0..1] [default: "l2"]
+  -s, --precision  Precision parameter, only used when loss function is 'beta_binomial*' [nargs=0..1] [default: 10]
+  -K, --segments   Number of segments, only used when loss function is '*_pla' or '*_ppla' [nargs=0..1] [default: 10]
  ```
 
 > [!NOTE]

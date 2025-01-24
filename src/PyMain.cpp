@@ -12,7 +12,6 @@ py::dict regress_frequencies(
     const std::vector<std::vector<int>>& adjacency_list,
     const std::vector<std::vector<float>> &frequency_matrix, 
     const std::optional<std::vector<std::vector<float>>>& weight_matrix,
-    std::optional<int> root,
     const std::string loss_function
 ) {
     std::vector<int> vertex_map(adjacency_list.size());
@@ -29,21 +28,17 @@ py::dict regress_frequencies(
     }
 
     int root_value;
-    if (root.has_value()) {
-        root_value = root.value();
-    } else {
-        bool seen_root = false;
-        for (auto n : clone_tree.nodes()) {
-            if (clone_tree.in_degree(n) == 0) {
-                root_value = clone_tree[n].data;
-                seen_root = true;
-                break;
-            }
+    bool seen_root = false;
+    for (auto n : clone_tree.nodes()) {
+        if (clone_tree.in_degree(n) == 0) {
+            root_value = clone_tree[n].data;
+            seen_root = true;
+            break;
         }
+    }
 
-        if (!seen_root) {
-            throw std::invalid_argument("no root node found in the adjacency list");
-        }
+    if (!seen_root) {
+        throw std::invalid_argument("no root node found in the adjacency list");
     }
 
     std::vector<std::vector<float>> weight_matrix_value(frequency_matrix.size(), std::vector<float>(frequency_matrix[0].size(), 1.0));
@@ -58,14 +53,8 @@ py::dict regress_frequencies(
         solver.solve();
         auto usage_matrix = left_inverse(clone_tree, vertex_map, solver.frequencies);
         r = {-1.0, solver.objective, usage_matrix, solver.frequencies};
-    } else if (loss_function == "binomial") {
-        throw std::invalid_argument("loss_function 'binomial' does not support frequency matrices");
-    } else if (loss_function == "binomial_K") {
-        throw std::invalid_argument("loss_function 'binomial_K' does not support frequency matrices");
-    } else if (loss_function == "l1") {
-        throw std::invalid_argument("loss_function 'l1' is not yet implemented");
     } else {
-        throw std::invalid_argument("loss_function must be one of ['l1', 'l2', 'binomial', 'binomial_K']");
+        throw std::invalid_argument("loss_function must be one of ['l2']");
     }
 
     py::dict result;
@@ -86,9 +75,9 @@ py::dict regress_read_counts(
     const std::vector<std::vector<int>> &variant_matrix, 
     const std::vector<std::vector<int>> &total_matrix, 
     const std::optional<std::vector<std::vector<float>>>& weight_matrix,
-    std::optional<int> root,
     const std::string loss_function,
-    int nr_segments
+    int nr_segments,
+    float precision
 ) {
     if (variant_matrix.size() != total_matrix.size()) {
         throw std::invalid_argument("variant_matrix and total_matrix must have the same number of rows");
@@ -116,21 +105,17 @@ py::dict regress_read_counts(
     }
 
     int root_value;
-    if (root.has_value()) {
-        root_value = root.value();
-    } else {
-        bool seen_root = false;
-        for (auto n : clone_tree.nodes()) {
-            if (clone_tree.in_degree(n) == 0) {
-                root_value = clone_tree[n].data;
-                seen_root = true;
-                break;
-            }
+    bool seen_root = false;
+    for (auto n : clone_tree.nodes()) {
+        if (clone_tree.in_degree(n) == 0) {
+            root_value = clone_tree[n].data;
+            seen_root = true;
+            break;
         }
+    }
 
-        if (!seen_root) {
-            throw std::invalid_argument("no root node found in the adjacency list");
-        }
+    if (!seen_root) {
+        throw std::invalid_argument("no root node found in the adjacency list");
     }
 
     std::vector<std::vector<float>> weight_matrix_value(variant_matrix.size(), std::vector<float>(variant_matrix[0].size(), 1.0));
@@ -141,14 +126,20 @@ py::dict regress_read_counts(
     SolverResult r;
     if (loss_function == "l2") {
         r = l2_solve(vertex_map, variant_matrix, total_matrix, weight_matrix_value, clone_tree, root_value);
-    } else if (loss_function == "binomial_K") {
-        r = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, nr_segments);
     } else if (loss_function == "binomial") {
         r = log_binomial_admm_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value);
+    } else if (loss_function == "binomial_pla") {
+        r = log_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, nr_segments);
+    } else if (loss_function == "binomial_ppla") {
+        r = log_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, nr_segments);
+    } else if (loss_function == "beta_binomial_pla") {
+        r = log_beta_binomial_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, nr_segments, precision);
+    } else if (loss_function == "beta_binomial_ppla") {
+        r = log_beta_binomial_fixed_solve(vertex_map, variant_matrix, total_matrix, clone_tree, root_value, nr_segments, precision);
     } else if (loss_function == "l1") {
         throw std::invalid_argument("loss_function 'l1' is not yet implemented");
     } else {
-        throw std::invalid_argument("loss_function must be one of ['l1', 'l2', 'binomial', 'binomial_K']");
+        throw std::invalid_argument("loss_function must be one of ['l1', 'l2', 'binomial', 'binomial_pla', 'binomial_ppla', 'beta_binomial_pla', 'beta_binomial_ppla']");
     }
 
     py::dict result;
@@ -173,9 +164,9 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("variant_matrix"), 
         py::arg("total_matrix"), 
         py::arg("weight_matrix") = std::nullopt,
-        py::arg("root") = std::nullopt,
         py::arg("loss_function") = "binomial",
-        py::arg("nr_segments") = 10
+        py::arg("nr_segments") = 10,
+        py::arg("precision") = 2.0
     );
 
     m.def(
@@ -183,7 +174,6 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("adjacency_list"), 
         py::arg("frequency_matrix"), 
         py::arg("weight_matrix") = std::nullopt,
-        py::arg("root") = std::nullopt,
         py::arg("loss_function") = "l2"
     );
 }
