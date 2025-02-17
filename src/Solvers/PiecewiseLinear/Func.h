@@ -30,7 +30,12 @@ int binary_search_greater(const std::unordered_map<int, ctype> &sorted_list, int
 real log_eps(real x,real eps=1e-6,int s_n=3);
 
 inline real FuncBinomLlh(real para_var, real para_ref, real x) {
-    return -para_var * log_eps(x) - para_ref * log_eps(1 - x);
+    if (para_var == 0)
+        return -para_ref * log_eps(1 - x);
+    else if (para_ref == 0)
+        return -para_var * log_eps(x);
+    else
+        return -para_var * log_eps(x) - para_ref * log_eps(1 - x);
 }
 
 inline real FuncBetaBinomLlh(real para_precision, real para_var, real para_ref, real x) {
