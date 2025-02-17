@@ -1,0 +1,46 @@
+{% set name = "fastppm" %}
+{% set version = "1.0.0" %}
+{% set build_number = 0 %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/elkebir-group/fastppm.git
+  git_tag: v{{ version }}
+  submodules: true
+
+build:
+  number: {{ build_number }}
+  string: "py_{{ build_number }}"
+
+requirements:
+  build:
+    # Basic build tools for compiling a C++/CMake project
+    - cmake
+    - make             # On Linux; not needed if using Ninja on all OSes
+    - {{ compiler('cxx') }}  # Tells conda to provide an appropriate C++ compiler
+    - python           # Because we’re building a Python extension via pybind11
+    - pybind11         # Usually needed at build time for the headers
+  host:
+    - python
+    - pybind11         # Also needed in the "host" env for cross-compilation
+  run:
+    # Python is needed at runtime if the user wants to `import fastppm`
+    - python
+
+about:
+  home: "https://github.com/elkebir-group/fastppm"
+  license: "MIT"
+  license_file: "LICENSE"
+  summary: "Fast Perfect Phylogeny Mixture Regression using Tree-Structured Dual Dynamic Programming"
+  description: |
+    `fastppm` (fast perfect phylogeny mixtures) is a C++/Python library
+    for fast estimation of unknown frequency matrices, given variant and
+    total read counts over an n-clonal tree. 
+
+test:
+  commands:
+    - fastppm-cli --help
+    - python -c "import fastppm; print(fastppm.__doc__)"
