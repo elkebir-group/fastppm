@@ -11,12 +11,35 @@ either as a command line tool or as a Python library.
 If you find this tool useful in your research, please cite the following paper:
 
 ```
+@article{schmidt2025fast,
+  title={Fast tumor phylogeny regression via tree-structured dual dynamic programming},
+  author={Schmidt, Henri and Qi, Yuanyuan and Raphael, Benjamin and El-Kebir, Mohammed},
+  journal={bioRxiv},
+  pages={2025--01},
+  year={2025},
+  publisher={Cold Spring Harbor Laboratory}
+}
 ```
 
 ## Installation
 
-`fastppm` requires depends only on a modern C++14 compiler and CMake. To install, simply clone the 
-repository and compile the code using CMake, making sure to initialize all git submodules.
+### Option 1: Conda installation
+
+Both the command line and Python version of `fastppm` are available on
+`conda`. To install using `conda` execute the following command:
+```
+$ conda install schmidt73::fastppm
+```
+Currently, `fastppm` is only available through `conda` for Linux and MacOS. Additional
+platforms will be supported upon request. Once installed, fastppm can
+be used on the command line via the `fastppm-cli` command and in Python
+using `import fastppm`.
+
+### Option 2: Manual installation
+
+To build `fastppm` manually requires only a modern C++20 compiler and CMake. 
+To install, simply clone the repository and compile the code using CMake, making
+sure to initialize all git submodules.
 
 ```bash
 $ git clone git@github.com:elkebir-group/fastppm.git --recursive
@@ -33,7 +56,10 @@ $ make
 
 The output files consist of the following:
 * `fastppm-cli` which is a command line tool.
-* `fastppm.cpython-39-x86_64-linux-gnu.so`, which is a Python libary whose extension will vary depending on OS and Python installation.
+* `fastppm.cpython-*.so`, which is a Python libary whose extension will vary depending on OS and Python installation.
+
+To use `fastppm` from Python, simply `import fastppm` with `fastppm.cpython-*.so` available
+to the `$PYTHONPATH` environmental variable.
 
 ## Usage
 
