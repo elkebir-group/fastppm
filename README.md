@@ -1,6 +1,6 @@
 # fastppm: fast perfect phylogeny mixture using tree structured dual dynamic programming
 
-`fastppm` (fast perfect phylogeny mixtures) is a C++/Python libary for 
+`fastppm` (fast perfect phylogeny mixtures) is a C++/Python library for 
 the fast estimation of the (unknown) frequency matrix $F \in [0,1]^{m \times n}$ 
 given variant and total read count matrices $$V,D \in \mathbb{N}^{m \times n}$$
 over a fixed n-clonal tree $\mathcal{T}$. `fastppm` provides support for
@@ -12,12 +12,18 @@ If you find this tool useful in your research, please cite the following paper:
 
 ```
 @article{schmidt2025fast,
-  title={Fast tumor phylogeny regression via tree-structured dual dynamic programming},
-  author={Schmidt, Henri and Qi, Yuanyuan and Raphael, Benjamin and El-Kebir, Mohammed},
-  journal={bioRxiv},
-  pages={2025--01},
-  year={2025},
-  publisher={Cold Spring Harbor Laboratory}
+    author = {Schmidt, Henri and Qi, Yuanyuan and Raphael, Benjamin J and El-Kebir, Mohammed},
+    title = {Fast tumor phylogeny regression via tree-structured dual dynamic programming},
+    journal = {Bioinformatics},
+    volume = {41},
+    number = {Supplement_1},
+    pages = {i170-i179},
+    year = {2025},
+    month = {07},
+    issn = {1367-4811},
+    doi = {10.1093/bioinformatics/btaf235},
+    url = {https://doi.org/10.1093/bioinformatics/btaf235},
+    eprint = {https://academic.oup.com/bioinformatics/article-pdf/41/Supplement\_1/i170/63745508/btaf235.pdf},
 }
 ```
 
