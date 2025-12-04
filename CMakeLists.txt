@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+project(fastppm VERSION 1.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -26,7 +27,5 @@ add_subdirectory(extern/argparse)
 add_subdirectory(extern/yyjson)
 add_subdirectory(extern/pybind11)
 
-# compile the project
-project(fastppm VERSION 1.0)
 add_subdirectory(include/)
 add_subdirectory(src/)

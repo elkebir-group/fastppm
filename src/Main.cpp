@@ -9,10 +9,7 @@
 #include <spdlog/fmt/ostr.h>
 #include <yyjson.h>
 
-#define FASTPPM_VERSION_MAJOR 1
-#define FASTPPM_VERSION_MINOR 0
-
-/* 
+/*
  * This function parses a matrix from a text file and returns it as a 2D vector.
  *
  * Input: 
@@ -93,7 +90,9 @@ int main(int argc, char ** argv) {
     // Parse command line arguments
     argparse::ArgumentParser program(
         "fastppm",
-        std::to_string(FASTPPM_VERSION_MAJOR) + "." + std::to_string(FASTPPM_VERSION_MAJOR),
+        std::to_string(FASTPPM_VERSION_MAJOR)
+            + "." + std::to_string(FASTPPM_VERSION_MAJOR)
+            + "." + std::to_string(FASTPPM_VERSION_PATCH),
         argparse::default_arguments::help
     );
 
@@ -103,7 +102,10 @@ int main(int argc, char ** argv) {
 
     program.add_argument("--version")
         .action([&](const auto & /*unused*/) {
-            std::cout << "fastppm version " << FASTPPM_VERSION_MAJOR << "." << FASTPPM_VERSION_MINOR << std::endl;
+            std::cout << "fastppm version " << FASTPPM_VERSION_MAJOR
+                << "." << FASTPPM_VERSION_MINOR
+                << "." << FASTPPM_VERSION_PATCH
+                << std::endl;
             std::exit(0);
         })
         .default_value(false)
@@ -325,7 +327,7 @@ int main(int argc, char ** argv) {
         output_file.write(json_str, len);
         free(json_str);
     } else {
-        std::cerr << "Failed to serialize JSON document." << std::endl;
+        error_logger->error("Failed to serialize JSON document.");
     }
 
     yyjson_mut_doc_free(doc);

@@ -257,6 +257,13 @@ py::dict regress_read_counts(
 
 PYBIND11_MODULE(fastppm, m) {
     m.doc() = "fastppm: fast perfect phylogeny mixture";
+
+    std::string version = std::to_string(FASTPPM_VERSION_MAJOR) + "." +
+                          std::to_string(FASTPPM_VERSION_MINOR) + "." +
+                          std::to_string(FASTPPM_VERSION_PATCH);
+
+    m.attr("__version__") = version;
+
     m.def(
         "regress_counts", &regress_read_counts, "Regresses read counts against the perfect phylogeny mixture model",
         py::arg("adjacency_list"), 

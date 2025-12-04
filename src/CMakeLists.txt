@@ -21,6 +21,14 @@ target_link_libraries(fastppm-lib PRIVATE
     csv
 )
 
+# Pass CMake version variables to the C++ preprocessor
+target_compile_definitions(fastppm-lib PRIVATE
+        FASTPPM_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        FASTPPM_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        FASTPPM_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)
+
+
 target_include_directories(fastppm-lib PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -40,10 +48,25 @@ target_link_libraries(fastppm-cli PRIVATE
     csv
 )
 
+# Pass CMake version variables to the C++ preprocessor
+target_compile_definitions(fastppm-cli PRIVATE
+        FASTPPM_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        FASTPPM_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        FASTPPM_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)
+
+
 # Build the fastppm Python bindings
 pybind11_add_module(
     fastppm MODULE 
     PyMain.cpp 
+)
+
+# Pass CMake version variables to the C++ preprocessor
+target_compile_definitions(fastppm PRIVATE
+        FASTPPM_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        FASTPPM_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        FASTPPM_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
 
 # add libraries to the python bindings
