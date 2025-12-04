@@ -1,5 +1,32 @@
 cmake_minimum_required(VERSION 3.10)
-project(fastppm VERSION 1.1.0)
+# --- VERSION DETECTION LOGIC ---
+# Priority 1: Check if passed via command line (e.g. -DFASTPPM_VERSION=1.1.0)
+if(NOT DEFINED FASTPPM_VERSION)
+  # Priority 2: Try to retrieve version from Git tags (matches meta.yaml behavior)
+  find_package(Git)
+  if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_TAG_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+    )
+
+    # If we found a tag (e.g. "v1.1.0"), strip the leading 'v'
+    if(GIT_TAG_VERSION MATCHES "^v")
+      string(SUBSTRING "${GIT_TAG_VERSION}" 1 -1 GIT_TAG_VERSION)
+    endif()
+  endif()
+
+  # Priority 3: Fallback to default
+  if(GIT_TAG_VERSION)
+    set(FASTPPM_VERSION "${GIT_TAG_VERSION}")
+  else()
+    set(FASTPPM_VERSION "0.0.0") # Fallback for local builds with no git
+  endif()
+endif()
+project(fastppm VERSION ${FASTPPM_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
