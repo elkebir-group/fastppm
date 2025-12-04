@@ -1,3 +1,5 @@
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/fastppm/README.html)
+
 # fastppm: fast perfect phylogeny mixture using tree structured dual dynamic programming
 
 `fastppm` (fast perfect phylogeny mixtures) is a C++/Python library for 
@@ -29,13 +31,15 @@ If you find this tool useful in your research, please cite the following paper:
 
 ## Installation
 
-### Option 1: Conda installation
+### Option 1: Conda installation (recommended)
 
 Both the command line and Python version of `fastppm` are available on
-`conda`. To install using `conda` execute the following command:
+`bioconda`. To install using `conda` execute the following command:
+
+```bash
+conda install -c bioconda derna
 ```
-$ conda install schmidt73::fastppm
-```
+
 Currently, `fastppm` is only available through `conda` for Linux and MacOS. Additional
 platforms will be supported upon request. Once installed, fastppm can
 be used on the command line via the `fastppm-cli` command and in Python
@@ -48,16 +52,16 @@ To install, simply clone the repository and compile the code using CMake, making
 sure to initialize all git submodules.
 
 ```bash
-$ git clone git@github.com:elkebir-group/fastppm.git --recursive
+git clone git@github.com:elkebir-group/fastppm.git --recursive
 ```
 
 To build, run the following commands:
 
 ```bash
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
+mkdir build
+cd build
+cmake ..
+make
 ```
 
 The output files consist of the following:
@@ -188,7 +192,7 @@ $ cat examples/sim_total_matrix.txt
 
 To run `fastppm` on the simulated data, we then use the following command:
 ```bash
-$ ./build/src/fastppm-cli -v examples/sim_variant_matrix.txt -d examples/sim_total_matrix.txt \
+./build/src/fastppm-cli -v examples/sim_variant_matrix.txt -d examples/sim_total_matrix.txt \
                           -t examples/sim_tree.txt -o examples/fastppm_results.json \
                           -f verbose -l l2
 ```
