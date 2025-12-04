@@ -37,7 +37,7 @@ Both the command line and Python version of `fastppm` are available on
 `bioconda`. To install using `conda` execute the following command:
 
 ```bash
-conda install -c bioconda derna
+conda install -c bioconda fastppm 
 ```
 
 Currently, `fastppm` is only available through `conda` for Linux and MacOS. Additional
