@@ -5,7 +5,8 @@
 #include "../TreeStructuredDualDP.h"
 
 namespace L2Solver {
-    void Solver::initialize() {
+    template <typename T>
+    void BasicSolver<T>::initialize() {
         postorder = clone_tree.postorder_traversal(vertex_map[root]);
         preorder = clone_tree.preorder_traversal(vertex_map[root]);
         num_descendants = std::vector(clone_tree.size(), 1);
@@ -19,28 +20,27 @@ namespace L2Solver {
         }
 
         for (size_t i = 0; i < clone_tree.size(); ++i) {
-            fs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
-            gs.push_back(PiecewiseQuadraticF(num_descendants[i] + 1));
+            fs.push_back(PiecewiseQuadraticF<T>(num_descendants[i] + 1));
+            gs.push_back(PiecewiseQuadraticF<T>(num_descendants[i] + 1));
         }
 
         cs.reserve(clone_tree.size() + 1);
     }
 
-    void Solver::solve() {
+    template <typename T>
+    void BasicSolver<T>::solve() {
         size_t nrows = frequency_matrix.size();
-        size_t ncols = frequency_matrix[0].size();
-        
 
-        float obj = 0;
+        T obj = 0;
         for (size_t j = 0; j < nrows; ++j) {
-            forward_solve<PiecewiseQuadraticF>(clone_tree, postorder, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, cs, j);
-            const PiecewiseQuadraticF& f = fs[vertex_map[root]];
+            forward_solve<PiecewiseQuadraticF<T>, T>(clone_tree, postorder, vertex_map, frequency_matrix, weight_matrix, root, fs, gs, cs, j);
+            const PiecewiseQuadraticF<T>& f = fs[vertex_map[root]];
             f.get_derivative_intercepts(cs);
 
-            float alpha_0 = 0.0;
+            T alpha_0 = 0.0;
             size_t i = 0;
             for (i = 0; i < cs.size();) {
-                if (cs[i] - 1 <= 0) break; 
+                if (cs[i] - 1 <= 0) break;
                 i++;
             }
 
@@ -50,7 +50,8 @@ namespace L2Solver {
                 alpha_0 = (1.0 - cs[i - 1]) / f.slopes[i - 1] + f.breakpoints[i - 1];
             }
 
-            alpha_0 = std::max(0.0f, alpha_0);
+            // f_root <= 1 needs alpha_0 >= 0; f_root = 1 leaves alpha_0 free
+            if (!fix_root_frequency) alpha_0 = std::max(T(0), alpha_0);
             obj += f(alpha_0, cs) - alpha_0;
             backtrack(alpha_0, j);
         }
@@ -58,15 +59,16 @@ namespace L2Solver {
         this->objective = obj;
     }
 
-    void Solver::backtrack(float alpha_0, int j) {
+    template <typename T>
+    void BasicSolver<T>::backtrack(T alpha_0, int j) {
       for (auto u : preorder) {
             int i = clone_tree[u].data;
 
             const auto& children = clone_tree.successors(u);
 
-            const PiecewiseQuadraticF& g = gs[u];
+            const PiecewiseQuadraticF<T>& g = gs[u];
 
-            float gamma; 
+            T gamma;
             if (i == root) {
                 gamma = alpha_0;
             } else {
@@ -74,12 +76,12 @@ namespace L2Solver {
                 gamma = alphas[j][p]; // get the parent's alpha
             }
 
-            float freq = frequency_matrix[j][i];
-            float weight = weight_matrix[j][i];
+            T freq = frequency_matrix[j][i];
+            T weight = weight_matrix[j][i];
 
-            float alpha;
+            T alpha;
             if (children.size() == 0) {
-                alpha = std::max(0.0f, gamma - 2.0f * weight * freq);
+                alpha = std::max(T(0), gamma - T(2) * weight * freq);
             } else {
                 alpha = g.compute_argmin(gamma, freq, weight, cs);
             }
@@ -88,4 +90,7 @@ namespace L2Solver {
             frequencies[j][i] = (alpha - gamma) / (2.0 * weight) + freq;
         }
     }
+
+    template class BasicSolver<float>;
+    template class BasicSolver<double>;
 };

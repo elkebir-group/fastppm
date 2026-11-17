@@ -20,17 +20,17 @@
  *      Computes J_i(.) <- min_{h_i(var, total) + J_i(.)} for 
  *      a vertex with a given frequency. 
  */
-template <typename Representation>
+template <typename Representation, typename T>
 void forward_solve(
     digraph<int>& clone_tree, 
     const std::vector<int>& post_order, 
     const std::vector<int>& vertex_map, 
-    const std::vector<std::vector<float>>& frequency_matrix, 
-    const std::vector<std::vector<float>>& weight_matrix, 
+    const std::vector<std::vector<T>>& frequency_matrix, 
+    const std::vector<std::vector<T>>& weight_matrix, 
     int root,
     std::vector<Representation>& fs,
     std::vector<Representation>& gs,
-    std::vector<float>& cs_buffer,
+    std::vector<T>& cs_buffer,
     size_t j
 ) {
     size_t ncols = frequency_matrix[0].size();
