@@ -418,6 +418,17 @@ Result solve(const Instance& in, const Options& opt) {
     // near 0) recovers in one step. Steps are kept only if they lower L, so L stays the loss of
     // feasible usages and the certificate is unchanged; the ADMM iterates are not touched.
     std::vector<double> grow(rows), gf(k), gu(k);
+    // grow = gradient of the loss with respect to the rows E f
+    auto row_gradient = [&](const std::vector<double>& f) {
+        E.multiply(f, Ef_buf);
+        for (int i = 0; i < n; ++i) {
+            double y = Ef_buf[i];
+            // a term without reads contributes nothing (avoids 0/0 when y_i = 0 or y_i = hat c_i)
+            grow[i] = (in.variant[i] > 0 ? -in.variant[i] / y : 0.0) +
+                      (in.total[i] > in.variant[i] ? (in.total[i] - in.variant[i]) / (chat[i] - y) : 0.0);
+        }
+        for (int r = n; r < rows; ++r) grow[r] = 2.0 * wrow[r - n] * (Ef_buf[r] - mu[r - n]);
+    };
     auto polish = [&](std::vector<double>& f, double& Lf) {
         std::vector<double> u = u_from_f(f);
         for (double& x : u) x = std::max(x, 0.0);
@@ -428,12 +439,7 @@ Result solve(const Instance& in, const Options& opt) {
             if (!std::isfinite(Lf)) return;
         }
         for (int step = 0; step < opt.polish_steps; ++step) {
-            E.multiply(f, Ef_buf);
-            for (int i = 0; i < n; ++i) {
-                double y = Ef_buf[i];
-                grow[i] = -in.variant[i] / y + (in.total[i] - in.variant[i]) / (chat[i] - y);
-            }
-            for (int r = n; r < rows; ++r) grow[r] = 2.0 * wrow[r - n] * (Ef_buf[r] - mu[r - n]);
+            row_gradient(f);
             ET.multiply(grow, gf);
             for (int j = 0; j < k; ++j) {  // dL/du_v: sum of dL/df_w over w on the path from the root to v
                 int v = preorder[j];
