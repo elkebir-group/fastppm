@@ -116,6 +116,31 @@ namespace {
         return p;
     }
 
+// Fast path of the y-update for all SNVs at once: kNewtonSteps plain Newton steps on the
+// derivative of binomial_loss(p) + r/2 (p - w)^2, from the previous value of each SNV. No
+// branches, so the loop vectorizes. An SNV is marked done only if its start was in (0, 1), its
+// result is in (0, 1) and its last step was at most 1e-8 p (1 - p), so that the error left after
+// that step is negligible; every other SNV is redone by the safeguarded binomial_prox.
+constexpr int kNewtonSteps = 3;
+
+static void binomial_prox_fast(int n, const double* r, const double* w, const double* v, const double* dv,
+                               const double* p0, double* p, unsigned char* done) {
+#pragma clang loop vectorize(enable)
+    for (int i = 0; i < n; ++i) {
+        const bool started = p0[i] > 0.0 && p0[i] < 1.0;
+        double x = started ? p0[i] : 0.5, step = 1.0;
+        for (int it = 0; it < kNewtonSteps; ++it) {
+            const double a = 1.0 / x, b = 1.0 / (1.0 - x);
+            const double phi = r[i] * (x - w[i]) - v[i] * a + dv[i] * b;   // derivative
+            const double dphi = r[i] + v[i] * a * a + dv[i] * b * b;      // second derivative
+            step = phi / dphi;
+            x -= step;
+        }
+        p[i] = x;
+        done[i] = started && x > 0.0 && x < 1.0 && std::abs(step) <= 1e-8 * x * (1.0 - x);
+    }
+}
+
     // h_i(beta) = min over y in [0, c] of L_i(y) - beta y.
     double h_snv(double beta, double c, int v, int d) {
         double y;
@@ -477,6 +502,15 @@ Result solve(const Instance& in, const Options& opt) {
     std::vector<double> best_f;
     int t = 0;
     std::vector<double> pprev(n, -1.0);  // previous y_i / hat c_i, the start of the next y-update
+    // the y-update in the variable p = y / hat c: argmin binomial_loss(p) + r/2 (p - w)^2 with
+    // r = rho hat c^2 and w = z / hat c; r, v and d - v are fixed, w changes every iteration
+    std::vector<double> prox_r(n), prox_v(n), prox_dv(n), prox_w(n), prox_p(n);
+    std::vector<unsigned char> prox_done(n);
+    for (int i = 0; i < n; ++i) {
+        prox_r[i] = rho[i] * chat[i] * chat[i];
+        prox_v[i] = in.variant[i];
+        prox_dv[i] = in.total[i] - in.variant[i];
+    }
     // Anderson acceleration (type II, Walker and Ni 2011) with a safeguard: an extrapolated state
     // is kept only if its residual is no larger than that of the last accepted state.
     std::vector<double> aa_xf(f), aa_xlam(lam), aa_gf, aa_glam, aa_pgf, aa_pglam, aa_r(k + rows);
@@ -492,11 +526,16 @@ Result solve(const Instance& in, const Options& opt) {
     res.anderson_accepted = res.anderson_rejected = 0;
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
-        for (int i = 0; i < n; ++i) {
-            double p = binomial_prox(rho[i] * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], opt.warm_prox ? pprev[i] : -1.0);
-            pprev[i] = p;
-            yg[i] = chat[i] * p;
+        for (int i = 0; i < n; ++i) prox_w[i] = z[i] / chat[i];
+        if (opt.warm_prox) {
+            binomial_prox_fast(n, prox_r.data(), prox_w.data(), prox_v.data(), prox_dv.data(), pprev.data(), prox_p.data(), prox_done.data());
+            for (int i = 0; i < n; ++i) {
+                pprev[i] = prox_done[i] ? prox_p[i] : binomial_prox(prox_r[i], prox_w[i], in.variant[i], in.total[i], pprev[i]);
+            }
+        } else {
+            for (int i = 0; i < n; ++i) pprev[i] = binomial_prox(prox_r[i], prox_w[i], in.variant[i], in.total[i], -1.0);
         }
+        for (int i = 0; i < n; ++i) yg[i] = chat[i] * pprev[i];
         for (int s = 0; s < ell; ++s) {
             w.assign(seg_start[s + 1] - seg_start[s], 0.0);
             const double rs = rho[seg_start[s]];  // constant within a segment
