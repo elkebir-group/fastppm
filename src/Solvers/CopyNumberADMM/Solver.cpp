@@ -74,10 +74,22 @@ namespace {
         if (v == 0 && d - r * w >= 0.0) return 0.0;
         if (v == d && r * (1.0 - w) - d <= 0.0) return 1.0;
 
-        double p = 0.5;
+        // Warm start: Newton from `start` (the previous iterate), kept only while every step
+        // stays inside the bracket that the sign of the derivative gives; otherwise Cardano.
         if (start > 0.0 && start < 1.0) {
-            p = start;
-        } else {
+            double p = start, lo = 0.0, hi = 1.0;
+            for (int it = 0; it < 8; ++it) {
+                double phi = r * (p - w) - v / p + (d - v) / (1.0 - p);
+                if (phi > 0.0) hi = p; else lo = p;
+                double dphi = r + v / (p * p) + (d - v) / ((1.0 - p) * (1.0 - p));
+                double next = p - phi / dphi;
+                if (std::abs(next - p) <= 1e-15 * std::max(1.0, p)) return std::clamp(next, lo, hi);
+                if (!(next > lo && next < hi)) break;
+                p = next;
+            }
+        }
+        double p = 0.5;
+        {
             double x1 = -1, x2 = -1, x3 = -1;
             if (v > 0 && v < d) {
                 solve_cubic(-r, r * (1.0 + w), d - r * w, -static_cast<double>(v), x1, x2, x3);
@@ -455,10 +467,13 @@ Result solve(const Instance& in, const Options& opt) {
     std::vector<double> fd;
     double L = INF, d = -INF, prev_gap = INF;
     int t = 0;
+    std::vector<double> pprev(n, -1.0);  // previous y_i / hat c_i, the start of the next y-update
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
         for (int i = 0; i < n; ++i) {
-            yg[i] = chat[i] * binomial_prox(rho[i] * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], -1.0);
+            double p = binomial_prox(rho[i] * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], opt.warm_prox ? pprev[i] : -1.0);
+            pprev[i] = p;
+            yg[i] = chat[i] * p;
         }
         for (int s = 0; s < ell; ++s) {
             w.assign(seg_start[s + 1] - seg_start[s], 0.0);

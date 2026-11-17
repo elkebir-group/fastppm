@@ -40,6 +40,7 @@ namespace CopyNumberADMM {
         int polish_steps = 5;    // exponentiated-gradient steps on the usages at each check (0: none)
         double alpha = 1.6;      // over-relaxation (Boyd et al. 2011, Sec. 3.4.3), in (0, 2); 1 is plain ADMM
         bool verbose = false;
+        bool warm_prox = true;   // start the y-update of each SNV from its previous value
     };
 
     struct Result {

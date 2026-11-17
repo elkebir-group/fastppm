@@ -274,7 +274,8 @@ py::dict regress_copy_number(
     int check_every,
     int polish_steps,
     double alpha,
-    bool verbose
+    bool verbose,
+    bool warm_prox
 ) {
     // SNV inputs are NumPy arrays (lists are converted): one copy instead of a conversion per element
     if (multiplicity.ndim() != 2 || multiplicity.shape(1) != static_cast<py::ssize_t>(parent.size()))
@@ -291,7 +292,7 @@ py::dict regress_copy_number(
     CopyNumberADMM::Instance instance{parent, states, mult, vec(segment), vec(variant), vec(total), state_fractions,
                                       mean_copy_number.value_or(std::vector<double>()),
                                       segment_weight.value_or(std::vector<double>())};
-    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose};
+    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose, warm_prox};
     CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
 
     py::dict result;
@@ -365,6 +366,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("check_every") = 10,
         py::arg("polish_steps") = 5,
         py::arg("alpha") = 1.6,
-        py::arg("verbose") = false
+        py::arg("verbose") = false,
+        py::arg("warm_prox") = true
     );
 }
