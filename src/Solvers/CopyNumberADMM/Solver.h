@@ -31,6 +31,7 @@ namespace CopyNumberADMM {
         double rho = 100.0;      // penalty
         double eps = 1.0;        // stop when L(u) - d(beta) <= eps (absolute, in units of the loss)
         int max_iterations = 100000;
+        int check_every = 10;    // iterations between evaluations of the stopping rule
         bool verbose = false;
     };
 

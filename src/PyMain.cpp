@@ -268,11 +268,12 @@ py::dict regress_copy_number(
     double rho,
     double eps,
     int max_iterations,
+    int check_every,
     bool verbose
 ) {
     CopyNumberADMM::Instance instance{parent, states, multiplicity, segment, variant, total, state_fractions,
                                       mean_copy_number.value_or(std::vector<double>())};
-    CopyNumberADMM::Options options{rho, eps, max_iterations, verbose};
+    CopyNumberADMM::Options options{rho, eps, max_iterations, check_every, verbose};
     CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
 
     py::dict result;
@@ -340,6 +341,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("rho") = 100.0,
         py::arg("eps") = 1.0,
         py::arg("max_iterations") = 100000,
+        py::arg("check_every") = 10,
         py::arg("verbose") = false
     );
 }

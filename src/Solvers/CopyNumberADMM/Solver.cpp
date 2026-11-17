@@ -66,24 +66,29 @@ namespace {
 
     // argmin over p in [0, 1] of binomial_loss(p) + r/2 (p - w)^2, i.e. the
     // y-update (12) in the scaled variable p = y / hat c with r = rho hat c^2.
-    // A root of the cubic (16) by Cardano's formula, polished by safeguarded
-    // Newton steps on the derivative, which is increasing on (0, 1).
-    double binomial_prox(double r, double w, int v, int d) {
+    // Safeguarded Newton steps on the derivative, which is increasing on (0, 1),
+    // started from `start` if it lies in (0, 1) (the previous iterate) and
+    // otherwise from a root of the cubic (16) by Cardano's formula.
+    double binomial_prox(double r, double w, int v, int d, double start) {
         if (d == 0) return std::clamp(w, 0.0, 1.0);
         if (v == 0 && d - r * w >= 0.0) return 0.0;
         if (v == d && r * (1.0 - w) - d <= 0.0) return 1.0;
 
-        double x1 = -1, x2 = -1, x3 = -1;
-        if (v > 0 && v < d) {
-            solve_cubic(-r, r * (1.0 + w), d - r * w, -static_cast<double>(v), x1, x2, x3);
-        } else if (v == 0) {
-            solve_quadratic(-r, r * (1.0 + w), d - r * w, x1, x2);
-        } else {
-            solve_quadratic(r, -r * w, -static_cast<double>(d), x1, x2);
-        }
         double p = 0.5;
-        for (double x : {x1, x2, x3}) {
-            if (x > 0.0 && x < 1.0) { p = x; break; }
+        if (start > 0.0 && start < 1.0) {
+            p = start;
+        } else {
+            double x1 = -1, x2 = -1, x3 = -1;
+            if (v > 0 && v < d) {
+                solve_cubic(-r, r * (1.0 + w), d - r * w, -static_cast<double>(v), x1, x2, x3);
+            } else if (v == 0) {
+                solve_quadratic(-r, r * (1.0 + w), d - r * w, x1, x2);
+            } else {
+                solve_quadratic(r, -r * w, -static_cast<double>(d), x1, x2);
+            }
+            for (double x : {x1, x2, x3}) {
+                if (x > 0.0 && x < 1.0) { p = x; break; }
+            }
         }
 
         double lo = 0.0, hi = 1.0;
@@ -302,7 +307,7 @@ Result solve(const Instance& in, const Options& opt) {
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
         for (int i = 0; i < n; ++i) {
-            yg[i] = chat[i] * binomial_prox(rho * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i]);
+            yg[i] = chat[i] * binomial_prox(rho * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], -1.0);
         }
         for (int s = 0; s < ell; ++s) {
             w.assign(seg_start[s + 1] - seg_start[s], 0.0);
@@ -320,11 +325,13 @@ Result solve(const Instance& in, const Options& opt) {
         for (int r = 0; r < rows; ++r) lam[r] += Ef[r] - yg[r];
         ++t;
 
+        // The certificate costs about as much as an iteration; evaluate it every check_every iterations.
+        if (t % std::max(1, opt.check_every) != 0 && t < opt.max_iterations) continue;
         for (int r = 0; r < rows; ++r) beta[r] = rho * lam[r];
         fd = dilute(f);
         L = loss(fd);
         d = dual_value(beta);
-        if (opt.verbose && t % 100 == 0) spdlog::info("iteration {}: loss {}, lower bound {}, gap {}", t, L, d, L - d);
+        if (opt.verbose) spdlog::info("iteration {}: loss {}, lower bound {}, gap {}", t, L, d, L - d);
         // L(u) is +inf while an SNV with v_i > 0 has y_i(u) = 0; never stop then
         if (std::isfinite(L) && L - d <= opt.eps) { res.converged = true; break; }
     }
