@@ -10,6 +10,7 @@ add_library(fastppm-lib STATIC
     Solvers/PiecewiseLinear/Tree.cpp
     Solvers/PiecewiseLinear/Func.cpp
     Solvers/SeparableADMM/Solver.cpp
+    Solvers/CopyNumberADMM/Solver.cpp
     Solvers/L2/Solver.cpp
 )
 

@@ -2,6 +2,7 @@
 #include "DiGraph.h"
 #include "CloneTree.h"
 #include "Solvers/L2/Solver.h"
+#include "Solvers/CopyNumberADMM/Solver.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -255,6 +256,37 @@ py::dict regress_read_counts(
 
 }
 
+py::dict regress_copy_number(
+    const std::vector<int>& parent,
+    const std::vector<std::vector<std::pair<int, int>>>& states,
+    const std::vector<std::vector<int>>& multiplicity,
+    const std::vector<int>& segment,
+    const std::vector<int>& variant,
+    const std::vector<int>& total,
+    const std::vector<std::vector<std::tuple<int, int, double>>>& state_fractions,
+    const std::optional<std::vector<double>>& mean_copy_number,
+    double rho,
+    double eps,
+    int max_iterations,
+    bool verbose
+) {
+    CopyNumberADMM::Instance instance{parent, states, multiplicity, segment, variant, total, state_fractions,
+                                      mean_copy_number.value_or(std::vector<double>())};
+    CopyNumberADMM::Options options{rho, eps, max_iterations, verbose};
+    CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
+
+    py::dict result;
+    result["usages"] = r.usages;
+    result["frequencies"] = r.frequencies;
+    result["loss"] = r.loss;
+    result["lower_bound"] = r.lower_bound;
+    result["gap"] = r.loss - r.lower_bound;
+    result["iterations"] = r.iterations;
+    result["converged"] = r.converged;
+    result["runtime"] = r.runtime_ms;
+    return result;
+}
+
 PYBIND11_MODULE(fastppm, m) {
     m.doc() = "fastppm: fast perfect phylogeny mixture";
 
@@ -292,5 +324,22 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("frequency_matrix"), 
         py::arg("weight_matrix") = std::nullopt,
         py::arg("loss_function") = "l2"
+    );
+
+    m.def(
+        "regress_copy_number", &regress_copy_number,
+        "Copy-number-aware clonal regression (fastppm-CN): binomial loss on SNVs, squared loss on state fractions",
+        py::arg("parent"),
+        py::arg("states"),
+        py::arg("multiplicity"),
+        py::arg("segment"),
+        py::arg("variant"),
+        py::arg("total"),
+        py::arg("state_fractions"),
+        py::arg("mean_copy_number") = std::nullopt,
+        py::arg("rho") = 100.0,
+        py::arg("eps") = 1.0,
+        py::arg("max_iterations") = 100000,
+        py::arg("verbose") = false
     );
 }
