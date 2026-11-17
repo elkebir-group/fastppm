@@ -28,7 +28,8 @@ namespace CopyNumberADMM {
     };
 
     struct Options {
-        double rho = 100.0;      // penalty
+        double rho = 100.0;      // penalty, the same for every row of E
+        double kappa = 0.0;      // if > 0, penalty of row j is kappa times the curvature of its loss
         double eps = 1.0;        // stop when L(u) - d(beta) <= eps (absolute, in units of the loss)
         int max_iterations = 100000;
         int check_every = 10;    // iterations between evaluations of the stopping rule

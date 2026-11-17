@@ -146,7 +146,6 @@ Result solve(const Instance& in, const Options& opt) {
     const int k = static_cast<int>(in.parent.size());
     const int n = static_cast<int>(in.multiplicity.size());
     const int ell = static_cast<int>(in.states.size());
-    const double rho = opt.rho;
 
     int root = -1;
     std::vector<std::vector<int>> children(k);
@@ -211,13 +210,25 @@ Result solve(const Instance& in, const Options& opt) {
     const Sparse ET = E.transpose();
     const int rows = E.rows;
 
-    // Damping (19).
+    // Penalty per row of E: rho, or kappa times the curvature of the row's loss
+    // (SNV i: d / (hat c^2 p (1 - p)) at p = (v + 1/2) / (d + 1); segment rows: 2).
+    // A diagonal penalty R is ADMM on the rescaled constraint R^(1/2)(y, g) = R^(1/2) E f.
+    std::vector<double> rho(rows, opt.rho);
+    if (opt.kappa > 0.0) {
+        for (int i = 0; i < n; ++i) {
+            double p = (in.variant[i] + 0.5) / (in.total[i] + 1.0);
+            rho[i] = opt.kappa * std::max(in.total[i], 1) / (chat[i] * chat[i] * p * (1.0 - p));
+        }
+        for (int r = n; r < rows; ++r) rho[r] = opt.kappa * 2.0;
+    }
+
+    // Damping (19), sigma_v = sum_j rho_j |e_jv| sum_w |e_jw|.
     std::vector<double> row_abs(rows, 0.0), sigma(k, 0.0);
     for (int r = 0; r < rows; ++r) {
         for (int p = E.ptr[r]; p < E.ptr[r + 1]; ++p) row_abs[r] += std::abs(E.val[p]);
     }
     for (int v = 0; v < k; ++v) {
-        for (int p = ET.ptr[v]; p < ET.ptr[v + 1]; ++p) sigma[v] += rho * std::abs(ET.val[p]) * row_abs[ET.idx[p]];
+        for (int p = ET.ptr[v]; p < ET.ptr[v + 1]; ++p) sigma[v] += rho[ET.idx[p]] * std::abs(ET.val[p]) * row_abs[ET.idx[p]];
         if (!(sigma[v] > 0.0)) throw std::invalid_argument("clone " + std::to_string(v) + " does not differ from its parent");
     }
 
@@ -307,17 +318,18 @@ Result solve(const Instance& in, const Options& opt) {
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
         for (int i = 0; i < n; ++i) {
-            yg[i] = chat[i] * binomial_prox(rho * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], -1.0);
+            yg[i] = chat[i] * binomial_prox(rho[i] * chat[i] * chat[i], z[i] / chat[i], in.variant[i], in.total[i], -1.0);
         }
         for (int s = 0; s < ell; ++s) {
             w.assign(seg_start[s + 1] - seg_start[s], 0.0);
-            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) w[r - seg_start[s]] = (2.0 * mu[r - n] + rho * z[r]) / (2.0 + rho);
+            const double rs = rho[seg_start[s]];  // constant within a segment
+            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) w[r - seg_start[s]] = (2.0 * mu[r - n] + rs * z[r]) / (2.0 + rs);
             project_simplex(w);
             for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) yg[r] = w[r - seg_start[s]];
         }
-        for (int r = 0; r < rows; ++r) q[r] = Ef[r] - yg[r] + lam[r];
+        for (int r = 0; r < rows; ++r) q[r] = rho[r] * (Ef[r] - yg[r] + lam[r]);
         ET.multiply(q, ETq);
-        for (int v = 0; v < k; ++v) target[0][v] = f[v] - (rho / sigma[v]) * ETq[v];
+        for (int v = 0; v < k; ++v) target[0][v] = f[v] - ETq[v] / sigma[v];
         tsddp.update_frequency_matrix(target);
         tsddp.solve();
         f = tsddp.frequencies[0];
@@ -327,7 +339,7 @@ Result solve(const Instance& in, const Options& opt) {
 
         // The certificate costs about as much as an iteration; evaluate it every check_every iterations.
         if (t % std::max(1, opt.check_every) != 0 && t < opt.max_iterations) continue;
-        for (int r = 0; r < rows; ++r) beta[r] = rho * lam[r];
+        for (int r = 0; r < rows; ++r) beta[r] = rho[r] * lam[r];
         fd = dilute(f);
         L = loss(fd);
         d = dual_value(beta);
