@@ -271,13 +271,14 @@ py::dict regress_copy_number(
     double eps,
     int max_iterations,
     int check_every,
+    int polish_steps,
     double alpha,
     bool verbose
 ) {
     CopyNumberADMM::Instance instance{parent, states, multiplicity, segment, variant, total, state_fractions,
                                       mean_copy_number.value_or(std::vector<double>()),
                                       segment_weight.value_or(std::vector<double>())};
-    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, alpha, verbose};
+    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose};
     CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
 
     py::dict result;
@@ -287,6 +288,7 @@ py::dict regress_copy_number(
     result["lower_bound"] = r.lower_bound;
     result["gap"] = r.loss - r.lower_bound;
     result["iterations"] = r.iterations;
+    result["kappa"] = r.kappa;
     result["converged"] = r.converged;
     result["runtime"] = r.runtime_ms;
     return result;
@@ -344,10 +346,11 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("mean_copy_number") = std::nullopt,
         py::arg("segment_weight") = std::nullopt,
         py::arg("rho") = 100.0,
-        py::arg("kappa") = 0.0,
+        py::arg("kappa") = -1.0,
         py::arg("eps") = 1.0,
         py::arg("max_iterations") = 100000,
         py::arg("check_every") = 10,
+        py::arg("polish_steps") = 5,
         py::arg("alpha") = 1.6,
         py::arg("verbose") = false
     );

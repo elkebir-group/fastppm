@@ -141,6 +141,89 @@ namespace {
     }
 }
 
+// kappa = 1 / sqrt(lambda_min lambda_max) of N = Sigma0^(-1/2) E^T H E Sigma0^(-1/2), the root
+// excluded, with H = diag(curv) and Sigma0 the damping (19) for R = H. This is the penalty
+// 1 / sqrt(lambda_min lambda_max) of A Q^(-1) A^T that Ghadimi et al. (2015) show to be optimal
+// for ADMM on quadratic problems, with A = H^(1/2) E and Q = Sigma0, the metric of the
+// linearized f-update. lambda_max by power iteration, lambda_min by inverse iteration.
+static double predicted_kappa(const Sparse& E, const std::vector<double>& curv, const std::vector<double>& row_abs, int root) {
+    const int k = E.cols;
+    std::vector<int> idx;
+    std::vector<int> pos(k, -1);
+    for (int v = 0; v < k; ++v) if (v != root) { pos[v] = static_cast<int>(idx.size()); idx.push_back(v); }
+    const int m = static_cast<int>(idx.size());
+    if (m == 0) return 1.0;
+    std::vector<double> N(static_cast<size_t>(m) * m, 0.0), sigma0(m, 0.0);
+    for (int r = 0; r < E.rows; ++r) {
+        for (int a = E.ptr[r]; a < E.ptr[r + 1]; ++a) {
+            int i = pos[E.idx[a]];
+            if (i < 0) continue;
+            sigma0[i] += curv[r] * std::abs(E.val[a]) * row_abs[r];
+            for (int b = E.ptr[r]; b < E.ptr[r + 1]; ++b) {
+                int j = pos[E.idx[b]];
+                if (j >= 0) N[static_cast<size_t>(i) * m + j] += curv[r] * E.val[a] * E.val[b];
+            }
+        }
+    }
+    for (int i = 0; i < m; ++i) {
+        if (!(sigma0[i] > 0.0)) return 1.0;
+        for (int j = 0; j < m; ++j) N[static_cast<size_t>(i) * m + j] /= std::sqrt(sigma0[i] * sigma0[j]);
+    }
+    auto normalize = [](std::vector<double>& x) {
+        double s = 0.0;
+        for (double v : x) s += v * v;
+        s = std::sqrt(s);
+        for (double& v : x) v /= s;
+        return s;
+    };
+    std::vector<double> x(m, 1.0), y(m);
+    normalize(x);
+    double lmax = 0.0;
+    for (int it = 0; it < 200; ++it) {
+        for (int i = 0; i < m; ++i) {
+            double s = 0.0;
+            for (int j = 0; j < m; ++j) s += N[static_cast<size_t>(i) * m + j] * x[j];
+            y[i] = s;
+        }
+        lmax = normalize(y);
+        x.swap(y);
+    }
+    // Cholesky N = C C^T for inverse iteration
+    std::vector<double> C(N);
+    for (int j = 0; j < m; ++j) {
+        double s = C[static_cast<size_t>(j) * m + j];
+        for (int l = 0; l < j; ++l) s -= C[static_cast<size_t>(j) * m + l] * C[static_cast<size_t>(j) * m + l];
+        if (!(s > 1e-14 * lmax)) return 1.0;  // (nearly) singular: no prediction
+        double cjj = std::sqrt(s);
+        C[static_cast<size_t>(j) * m + j] = cjj;
+        for (int i = j + 1; i < m; ++i) {
+            double t = C[static_cast<size_t>(i) * m + j];
+            for (int l = 0; l < j; ++l) t -= C[static_cast<size_t>(i) * m + l] * C[static_cast<size_t>(j) * m + l];
+            C[static_cast<size_t>(i) * m + j] = t / cjj;
+        }
+    }
+    std::fill(x.begin(), x.end(), 1.0);
+    normalize(x);
+    double inv = 0.0;
+    for (int it = 0; it < 200; ++it) {
+        for (int i = 0; i < m; ++i) {  // C z = x
+            double t = x[i];
+            for (int l = 0; l < i; ++l) t -= C[static_cast<size_t>(i) * m + l] * y[l];
+            y[i] = t / C[static_cast<size_t>(i) * m + i];
+        }
+        for (int i = m - 1; i >= 0; --i) {  // C^T w = z
+            double t = y[i];
+            for (int l = i + 1; l < m; ++l) t -= C[static_cast<size_t>(l) * m + i] * y[l];
+            y[i] = t / C[static_cast<size_t>(i) * m + i];
+        }
+        inv = normalize(y);
+        x.swap(y);
+    }
+    double lmin = 1.0 / inv;
+    double kappa = 1.0 / std::sqrt(lmin * lmax);
+    return std::isfinite(kappa) && kappa > 0.0 ? kappa : 1.0;
+}
+
 Result solve(const Instance& in, const Options& opt) {
     auto start = std::chrono::high_resolution_clock::now();
     const int k = static_cast<int>(in.parent.size());
@@ -222,20 +305,23 @@ Result solve(const Instance& in, const Options& opt) {
     // Penalty per row of E: rho, or kappa times the curvature of the row's loss
     // (SNV i: d / (hat c^2 p (1 - p)) at p = (v + 1/2) / (d + 1); segment rows: 2).
     // A diagonal penalty R is ADMM on the rescaled constraint R^(1/2)(y, g) = R^(1/2) E f.
-    std::vector<double> rho(rows, opt.rho);
-    if (opt.kappa > 0.0) {
-        for (int i = 0; i < n; ++i) {
-            double p = (in.variant[i] + 0.5) / (in.total[i] + 1.0);
-            rho[i] = opt.kappa * std::max(in.total[i], 1) / (chat[i] * chat[i] * p * (1.0 - p));
-        }
-        for (int r = n; r < rows; ++r) rho[r] = opt.kappa * 2.0 * wrow[r - n];
-    }
-
-    // Damping (19), sigma_v = sum_j rho_j |e_jv| sum_w |e_jw|.
     std::vector<double> row_abs(rows, 0.0), sigma(k, 0.0);
     for (int r = 0; r < rows; ++r) {
         for (int p = E.ptr[r]; p < E.ptr[r + 1]; ++p) row_abs[r] += std::abs(E.val[p]);
     }
+    std::vector<double> curv(rows);
+    for (int i = 0; i < n; ++i) {
+        double p = (in.variant[i] + 0.5) / (in.total[i] + 1.0);
+        curv[i] = std::max(in.total[i], 1) / (chat[i] * chat[i] * p * (1.0 - p));
+    }
+    for (int r = n; r < rows; ++r) curv[r] = 2.0 * wrow[r - n];
+    double kappa = opt.kappa < 0.0 ? predicted_kappa(E, curv, row_abs, root) : opt.kappa;
+    std::vector<double> rho(rows, opt.rho);
+    if (kappa > 0.0) {
+        for (int r = 0; r < rows; ++r) rho[r] = kappa * curv[r];
+    }
+
+    // Damping (19), sigma_v = sum_j rho_j |e_jv| sum_w |e_jw|.
     for (int v = 0; v < k; ++v) {
         for (int p = ET.ptr[v]; p < ET.ptr[v + 1]; ++p) sigma[v] += rho[ET.idx[p]] * std::abs(ET.val[p]) * row_abs[ET.idx[p]];
         if (!(sigma[v] > 0.0)) throw std::invalid_argument("clone " + std::to_string(v) + " does not differ from its parent");
@@ -314,6 +400,51 @@ Result solve(const Instance& in, const Options& opt) {
         return fd;
     };
 
+    // Better usages for the upper bound: exponentiated-gradient steps on u over the simplex,
+    // u_v <- u_v exp(-eta (g_v - <u, g>)) normalized, with g = dL/du. They act on a log scale,
+    // so a clone whose usage is orders of magnitude too small (an SNV with reads and frequency
+    // near 0) recovers in one step. Steps are kept only if they lower L, so L stays the loss of
+    // feasible usages and the certificate is unchanged; the ADMM iterates are not touched.
+    std::vector<double> grow(rows), gf(k), gu(k);
+    auto polish = [&](std::vector<double>& f, double& Lf) {
+        std::vector<double> u = u_from_f(f);
+        for (double& x : u) x = std::max(x, 0.0);
+        if (!std::isfinite(Lf)) {  // an SNV with reads has frequency 0: give every clone a tiny usage
+            for (double& x : u) x = (1.0 - 1e-9) * x + 1e-9 / k;
+            f = f_from_u(u);
+            Lf = loss(f);
+            if (!std::isfinite(Lf)) return;
+        }
+        for (int step = 0; step < opt.polish_steps; ++step) {
+            E.multiply(f, Ef_buf);
+            for (int i = 0; i < n; ++i) {
+                double y = Ef_buf[i];
+                grow[i] = -in.variant[i] / y + (in.total[i] - in.variant[i]) / (chat[i] - y);
+            }
+            for (int r = n; r < rows; ++r) grow[r] = 2.0 * wrow[r - n] * (Ef_buf[r] - mu[r - n]);
+            ET.multiply(grow, gf);
+            for (int j = 0; j < k; ++j) {  // dL/du_v: sum of dL/df_w over w on the path from the root to v
+                int v = preorder[j];
+                gu[v] = gf[v] + (in.parent[v] < 0 ? 0.0 : gu[in.parent[v]]);
+            }
+            double mean = 0.0, spread = 0.0;
+            for (int v = 0; v < k; ++v) mean += u[v] * gu[v];
+            for (int v = 0; v < k; ++v) if (u[v] > 0.0) spread = std::max(spread, std::abs(gu[v] - mean));
+            if (!(spread > 0.0) || !std::isfinite(spread)) return;
+            bool accepted = false;
+            for (double c = 5.0; c > 1e-6; c /= 2.0) {  // the largest change of log u_v is c
+                std::vector<double> u2(k);
+                double total = 0.0;
+                for (int v = 0; v < k; ++v) { u2[v] = u[v] * std::exp(-c / spread * (gu[v] - mean)); total += u2[v]; }
+                for (double& x : u2) x /= total;
+                std::vector<double> f2 = f_from_u(u2);
+                double L2 = loss(f2);
+                if (L2 < Lf) { u = u2; f = f2; Lf = L2; accepted = true; break; }
+            }
+            if (!accepted) return;
+        }
+    };
+
     // Algorithm 1.
     std::vector<double> f = f_from_u(std::vector<double>(k, 1.0 / k));
     std::vector<double> lam(rows, 0.0), Ef(rows), z(rows), yg(rows), q(rows), ETq(k), beta(rows), w;
@@ -322,7 +453,7 @@ Result solve(const Instance& in, const Options& opt) {
     Result res;
     res.converged = false;
     std::vector<double> fd;
-    double L = INF, d = -INF;
+    double L = INF, d = -INF, prev_gap = INF;
     int t = 0;
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
@@ -356,6 +487,11 @@ Result solve(const Instance& in, const Options& opt) {
         fd = dilute(f);
         L = loss(fd);
         d = dual_value(beta);
+        // Polish the usages only when the stopping rule fails without it and the gap stalls
+        // (L is infinite, or the gap did not halve since the previous check).
+        if (opt.polish_steps > 0 && !(std::isfinite(L) && L - d <= opt.eps) &&
+            (!std::isfinite(L) || L - d > 0.5 * prev_gap)) polish(fd, L);
+        prev_gap = std::isfinite(L) ? L - d : INF;
         if (opt.verbose) spdlog::info("iteration {}: loss {}, lower bound {}, gap {}", t, L, d, L - d);
         // L(u) is +inf while an SNV with v_i > 0 has y_i(u) = 0; never stop then
         if (std::isfinite(L) && L - d <= opt.eps) { res.converged = true; break; }
@@ -366,6 +502,7 @@ Result solve(const Instance& in, const Options& opt) {
     res.loss = L;
     res.lower_bound = d;
     res.iterations = t;
+    res.kappa = kappa;
     res.runtime_ms = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
     return res;
 }

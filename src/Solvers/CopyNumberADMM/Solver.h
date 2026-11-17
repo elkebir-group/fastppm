@@ -31,10 +31,13 @@ namespace CopyNumberADMM {
 
     struct Options {
         double rho = 100.0;      // penalty, the same for every row of E
-        double kappa = 0.0;      // if > 0, penalty of row j is kappa times the curvature of its loss
+        // penalty of row j is kappa times the curvature of its loss; kappa < 0: kappa = 1 / sqrt(lambda_min lambda_max)
+        // of Sigma0^(-1/2) E^T H E Sigma0^(-1/2) (root excluded); kappa = 0: the scalar penalty rho on every row
+        double kappa = -1.0;
         double eps = 1.0;        // stop when L(u) - d(beta) <= eps (absolute, in units of the loss)
         int max_iterations = 100000;
         int check_every = 10;    // iterations between evaluations of the stopping rule
+        int polish_steps = 5;    // exponentiated-gradient steps on the usages at each check (0: none)
         double alpha = 1.6;      // over-relaxation (Boyd et al. 2011, Sec. 3.4.3), in (0, 2); 1 is plain ADMM
         bool verbose = false;
     };
@@ -45,6 +48,7 @@ namespace CopyNumberADMM {
         double loss;                      // L(u^(t))
         double lower_bound;               // d(beta^(t)) (24)
         int iterations;
+        double kappa;                     // kappa used (0 in scalar mode)
         bool converged;
         double runtime_ms;
     };
