@@ -465,7 +465,8 @@ Result solve(const Instance& in, const Options& opt) {
     Result res;
     res.converged = false;
     std::vector<double> fd;
-    double L = INF, d = -INF, prev_gap = INF;
+    double L = INF, d = -INF, prev_gap = INF, best_L = INF;
+    std::vector<double> best_f;
     int t = 0;
     std::vector<double> pprev(n, -1.0);  // previous y_i / hat c_i, the start of the next y-update
     while (t < opt.max_iterations) {
@@ -506,6 +507,8 @@ Result solve(const Instance& in, const Options& opt) {
         // (L is infinite, or the gap did not halve since the previous check).
         if (opt.polish_steps > 0 && !(std::isfinite(L) && L - d <= opt.eps) &&
             (!std::isfinite(L) || L - d > 0.5 * prev_gap)) polish(fd, L);
+        // Any feasible point gives an upper bound: keep the best one found so far.
+        if (L < best_L) { best_L = L; best_f = fd; } else if (std::isfinite(best_L)) { L = best_L; fd = best_f; }
         prev_gap = std::isfinite(L) ? L - d : INF;
         if (opt.verbose) spdlog::info("iteration {}: loss {}, lower bound {}, gap {}", t, L, d, L - d);
         // L(u) is +inf while an SNV with v_i > 0 has y_i(u) = 0; never stop then

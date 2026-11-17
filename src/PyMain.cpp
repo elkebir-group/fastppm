@@ -364,7 +364,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("eps") = 1.0,
         py::arg("max_iterations") = 100000,
         py::arg("check_every") = 10,
-        py::arg("polish_steps") = 5,
+        py::arg("polish_steps") = 1,
         py::arg("alpha") = 1.6,
         py::arg("verbose") = false,
         py::arg("warm_prox") = true
