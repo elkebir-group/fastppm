@@ -6,6 +6,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
@@ -259,10 +260,10 @@ py::dict regress_read_counts(
 py::dict regress_copy_number(
     const std::vector<int>& parent,
     const std::vector<std::vector<std::pair<int, int>>>& states,
-    const std::vector<std::vector<int>>& multiplicity,
-    const std::vector<int>& segment,
-    const std::vector<int>& variant,
-    const std::vector<int>& total,
+    const py::array_t<int, py::array::c_style | py::array::forcecast>& multiplicity,
+    const py::array_t<int, py::array::c_style | py::array::forcecast>& segment,
+    const py::array_t<int, py::array::c_style | py::array::forcecast>& variant,
+    const py::array_t<int, py::array::c_style | py::array::forcecast>& total,
     const std::vector<std::vector<std::tuple<int, int, double>>>& state_fractions,
     const std::optional<std::vector<double>>& mean_copy_number,
     const std::optional<std::vector<double>>& segment_weight,
@@ -275,7 +276,19 @@ py::dict regress_copy_number(
     double alpha,
     bool verbose
 ) {
-    CopyNumberADMM::Instance instance{parent, states, multiplicity, segment, variant, total, state_fractions,
+    // SNV inputs are NumPy arrays (lists are converted): one copy instead of a conversion per element
+    if (multiplicity.ndim() != 2 || multiplicity.shape(1) != static_cast<py::ssize_t>(parent.size()))
+        throw std::invalid_argument("multiplicity must be an array of shape (number of SNVs, number of clones)");
+    const py::ssize_t n = multiplicity.shape(0), k = multiplicity.shape(1);
+    if (segment.size() != n || variant.size() != n || total.size() != n)
+        throw std::invalid_argument("segment, variant and total must have one entry per SNV");
+    std::vector<std::vector<int>> mult(n);
+    const int* m = multiplicity.data();
+    for (py::ssize_t i = 0; i < n; ++i) mult[i].assign(m + i * k, m + (i + 1) * k);
+    auto vec = [](const py::array_t<int, py::array::c_style | py::array::forcecast>& a) {
+        return std::vector<int>(a.data(), a.data() + a.size());
+    };
+    CopyNumberADMM::Instance instance{parent, states, mult, vec(segment), vec(variant), vec(total), state_fractions,
                                       mean_copy_number.value_or(std::vector<double>()),
                                       segment_weight.value_or(std::vector<double>())};
     CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose};
