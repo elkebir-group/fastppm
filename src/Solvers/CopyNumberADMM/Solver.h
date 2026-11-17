@@ -35,6 +35,7 @@ namespace CopyNumberADMM {
         double eps = 1.0;        // stop when L(u) - d(beta) <= eps (absolute, in units of the loss)
         int max_iterations = 100000;
         int check_every = 10;    // iterations between evaluations of the stopping rule
+        double alpha = 1.6;      // over-relaxation (Boyd et al. 2011, Sec. 3.4.3), in (0, 2); 1 is plain ADMM
         bool verbose = false;
     };
 

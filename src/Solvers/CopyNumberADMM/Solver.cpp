@@ -336,6 +336,10 @@ Result solve(const Instance& in, const Options& opt) {
             project_simplex(w);
             for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) yg[r] = w[r - seg_start[s]];
         }
+        // over-relaxation: (y, g) is replaced by alpha (y, g) + (1 - alpha) E f in the f- and lambda-updates
+        if (opt.alpha != 1.0) {
+            for (int r = 0; r < rows; ++r) yg[r] = opt.alpha * yg[r] + (1.0 - opt.alpha) * Ef[r];
+        }
         for (int r = 0; r < rows; ++r) q[r] = rho[r] * (Ef[r] - yg[r] + lam[r]);
         ET.multiply(q, ETq);
         for (int v = 0; v < k; ++v) target[0][v] = f[v] - ETq[v] / sigma[v];
