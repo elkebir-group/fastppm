@@ -236,6 +236,8 @@ static double predicted_kappa(const Sparse& E, const std::vector<double>& curv, 
     return std::isfinite(kappa) && kappa > 0.0 ? kappa : 1.0;
 }
 
+constexpr int kMaxAnderson = 32;
+
 Result solve(const Instance& in, const Options& opt) {
     auto start = std::chrono::high_resolution_clock::now();
     const int k = static_cast<int>(in.parent.size());
@@ -475,6 +477,19 @@ Result solve(const Instance& in, const Options& opt) {
     std::vector<double> best_f;
     int t = 0;
     std::vector<double> pprev(n, -1.0);  // previous y_i / hat c_i, the start of the next y-update
+    // Anderson acceleration (type II, Walker and Ni 2011) with a safeguard: an extrapolated state
+    // is kept only if its residual is no larger than that of the last accepted state.
+    std::vector<double> aa_xf(f), aa_xlam(lam), aa_gf, aa_glam, aa_pgf, aa_pglam, aa_r(k + rows);
+    if (opt.anderson_memory > kMaxAnderson) throw std::invalid_argument("anderson_memory must be at most " + std::to_string(kMaxAnderson));
+    const int aa_M = std::max(opt.anderson_memory, 0);
+    std::vector<double> aa_dg(static_cast<size_t>(aa_M) * (k + rows)), aa_dr(static_cast<size_t>(aa_M) * (k + rows)), aa_gram(aa_M * aa_M), aa_b(aa_M), aa_pr(k + rows);
+    std::vector<double> sqrt_sigma(k), sqrt_rho(rows);
+    for (int v = 0; v < k; ++v) sqrt_sigma[v] = std::sqrt(sigma[v]);
+    for (int r = 0; r < rows; ++r) sqrt_rho[r] = std::sqrt(rho[r]);
+    int aa_head = 0, aa_count = 0;
+    bool aa_has_prev = false, aa_trial = false;
+    double aa_ref_norm = INF;
+    res.anderson_accepted = res.anderson_rejected = 0;
     while (t < opt.max_iterations) {
         for (int r = 0; r < rows; ++r) z[r] = Ef[r] + lam[r];
         for (int i = 0; i < n; ++i) {
@@ -503,10 +518,122 @@ Result solve(const Instance& in, const Options& opt) {
         for (int r = 0; r < rows; ++r) lam[r] += Ef[r] - yg[r];
         ++t;
 
+        // (f, lam) is now g = T(x), one ADMM step from the previous state x. The certificate is
+        // computed from g (its f solves the tree problem, so it is feasible); Anderson acceleration
+        // may replace the state by an extrapolation of the recent g's.
+        const std::vector<double>* cf = &f;
+        const std::vector<double>* clam = &lam;
+        if (opt.anderson_memory > 0) {
+            const int D = k + rows, M = opt.anderson_memory;
+            // residual r = g - x in the metric of the iteration: sqrt(sigma) on f, sqrt(rho) on lam
+            double rn = 0.0;
+            for (int v = 0; v < k; ++v) { aa_r[v] = sqrt_sigma[v] * (f[v] - aa_xf[v]); rn += aa_r[v] * aa_r[v]; }
+            for (int r = 0; r < rows; ++r) { aa_r[k + r] = sqrt_rho[r] * (lam[r] - aa_xlam[r]); rn += aa_r[k + r] * aa_r[k + r]; }
+            rn = std::sqrt(rn);
+            if (aa_trial && !(rn <= aa_ref_norm)) {
+                // the extrapolated point did worse than the last accepted one: take the plain step
+                // from that point instead (its T value is aa_pg) and restart the history; the
+                // certificate uses this iteration's g, which is feasible too
+                ++res.anderson_rejected;
+                aa_gf = f; aa_glam = lam;
+                cf = &aa_gf; clam = &aa_glam;
+                aa_count = 0; aa_has_prev = false; aa_trial = false;
+                f = aa_pgf; lam = aa_pglam;
+            } else {
+                if (aa_trial) ++res.anderson_accepted;
+                if (aa_has_prev) {
+                    // New column of the ring buffer (differences with the previous accepted pair),
+                    // fused with the new row of the Gram matrix and with dr_new . r_prev, in one pass.
+                    // History is stored entry-major (entry j of all M slots is contiguous), so this
+                    // pass and the extrapolation below read memory sequentially.
+                    const int slot = aa_head;
+                    const int old = aa_count < M ? aa_count : M - 1;  // columns kept besides the new one
+                    std::vector<int> sl(old);
+                    for (int c = 0; c < old; ++c) sl[c] = ((slot - 1 - c) % M + M) % M;
+                    double row[kMaxAnderson] = {0.0};  // dot products of the new column with every slot
+                    double cross = 0.0;
+                    for (int j = 0; j < D; ++j) {
+                        const double x = aa_r[j] - aa_pr[j];
+                        double* drj = &aa_dr[static_cast<size_t>(j) * M];
+                        drj[slot] = x;
+                        cross += x * aa_pr[j];
+                        for (int c = 0; c < M; ++c) row[c] += x * drj[c];
+                    }
+                    for (int v = 0; v < k; ++v) aa_dg[static_cast<size_t>(v) * M + slot] = f[v] - aa_pgf[v];
+                    for (int r = 0; r < rows; ++r) aa_dg[static_cast<size_t>(k + r) * M + slot] = lam[r] - aa_pglam[r];
+                    // b_a = dr_a . r: r = r_prev + dr_new, so b_a += G(a, new) for the kept columns
+                    const double self = row[slot];
+                    aa_gram[slot * M + slot] = self;
+                    aa_b[slot] = cross + self;
+                    for (int c = 0; c < old; ++c) {
+                        aa_gram[slot * M + sl[c]] = aa_gram[sl[c] * M + slot] = row[sl[c]];
+                        aa_b[sl[c]] += row[sl[c]];
+                    }
+                    aa_head = (slot + 1) % M;
+                    aa_count = old + 1;
+                }
+                aa_pgf = f; aa_pglam = lam; std::swap(aa_pr, aa_r); aa_has_prev = true; aa_ref_norm = rn;
+                cf = &aa_pgf; clam = &aa_pglam;
+                aa_trial = false;
+                const int m = aa_count;
+                if (m > 0) {
+                    // gamma = argmin |r - dR gamma|^2 + reg |gamma|^2, then x = g - dG gamma
+                    std::vector<int> sl(m);
+                    for (int c = 0; c < m; ++c) sl[c] = ((aa_head - 1 - c) % M + M) % M;
+                    std::vector<double> A(m * m), gam(m);
+                    double tr = 0.0;
+                    for (int a2 = 0; a2 < m; ++a2) {
+                        for (int c = 0; c < m; ++c) A[a2 * m + c] = aa_gram[sl[a2] * M + sl[c]];
+                        tr += A[a2 * m + a2];
+                        gam[a2] = aa_b[sl[a2]];
+                    }
+                    for (int a2 = 0; a2 < m; ++a2) A[a2 * m + a2] += opt.anderson_reg * tr + 1e-300;
+                    bool ok = true;  // Gaussian elimination with partial pivoting
+                    for (int c = 0; c < m && ok; ++c) {
+                        int piv = c;
+                        for (int a2 = c + 1; a2 < m; ++a2) if (std::abs(A[a2 * m + c]) > std::abs(A[piv * m + c])) piv = a2;
+                        if (!(std::abs(A[piv * m + c]) > 0.0)) { ok = false; break; }
+                        if (piv != c) { for (int e = 0; e < m; ++e) std::swap(A[c * m + e], A[piv * m + e]); std::swap(gam[c], gam[piv]); }
+                        for (int a2 = c + 1; a2 < m; ++a2) {
+                            double fac = A[a2 * m + c] / A[c * m + c];
+                            for (int e = c; e < m; ++e) A[a2 * m + e] -= fac * A[c * m + e];
+                            gam[a2] -= fac * gam[c];
+                        }
+                    }
+                    if (ok) {
+                        for (int c = m - 1; c >= 0; --c) {
+                            for (int e = c + 1; e < m; ++e) gam[c] -= A[c * m + e] * gam[e];
+                            gam[c] /= A[c * m + c];
+                        }
+                        for (double x : gam) ok = ok && std::isfinite(x);
+                    }
+                    if (ok) {  // x = g - dG gamma, in one pass; slots not in use get weight 0
+                        double gs[kMaxAnderson] = {0.0};
+                        for (int a2 = 0; a2 < m; ++a2) gs[sl[a2]] = gam[a2];
+                        for (int v = 0; v < k; ++v) {
+                            const double* dgj = &aa_dg[static_cast<size_t>(v) * M];
+                            double x = 0.0;
+                            for (int c = 0; c < M; ++c) x += gs[c] * dgj[c];
+                            f[v] -= x;
+                        }
+                        for (int r = 0; r < rows; ++r) {
+                            const double* dgj = &aa_dg[static_cast<size_t>(k + r) * M];
+                            double x = 0.0;
+                            for (int c = 0; c < M; ++c) x += gs[c] * dgj[c];
+                            lam[r] -= x;
+                        }
+                        aa_trial = true;
+                    }
+                }
+            }
+            if (aa_trial) E.multiply(f, Ef); else if (cf == &aa_gf) E.multiply(f, Ef);
+            aa_xf = f; aa_xlam = lam;
+        }
+
         // The certificate costs about as much as an iteration; evaluate it every check_every iterations.
         if (t % std::max(1, opt.check_every) != 0 && t < opt.max_iterations) continue;
-        for (int r = 0; r < rows; ++r) beta[r] = rho[r] * lam[r];
-        fd = dilute(f);
+        for (int r = 0; r < rows; ++r) beta[r] = rho[r] * (*clam)[r];
+        fd = dilute(*cf);
         L = loss(fd);
         d = dual_value(beta);
         // Polish the usages only when the stopping rule fails without it and the gap stalls

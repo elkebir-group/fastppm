@@ -40,6 +40,8 @@ namespace CopyNumberADMM {
         int polish_steps = 1;    // exponentiated-gradient steps on the usages at each check (0: none)
         double alpha = 1.6;      // over-relaxation (Boyd et al. 2011, Sec. 3.4.3), in (0, 2); 1 is plain ADMM
         bool verbose = false;
+        int anderson_memory = 10; // Anderson acceleration with this many past steps (0: off; SCS default 10)
+        double anderson_reg = 1e-10;
         bool warm_prox = true;   // start the y-update of each SNV from its previous value
     };
 
@@ -49,6 +51,7 @@ namespace CopyNumberADMM {
         double loss;                      // L(u^(t))
         double lower_bound;               // d(beta^(t)) (24)
         int iterations;
+        int anderson_accepted, anderson_rejected;
         double kappa;                     // kappa used (0 in scalar mode)
         bool converged;
         double runtime_ms;
