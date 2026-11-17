@@ -265,6 +265,7 @@ py::dict regress_copy_number(
     const std::vector<int>& total,
     const std::vector<std::vector<std::tuple<int, int, double>>>& state_fractions,
     const std::optional<std::vector<double>>& mean_copy_number,
+    const std::optional<std::vector<double>>& segment_weight,
     double rho,
     double kappa,
     double eps,
@@ -273,7 +274,8 @@ py::dict regress_copy_number(
     bool verbose
 ) {
     CopyNumberADMM::Instance instance{parent, states, multiplicity, segment, variant, total, state_fractions,
-                                      mean_copy_number.value_or(std::vector<double>())};
+                                      mean_copy_number.value_or(std::vector<double>()),
+                                      segment_weight.value_or(std::vector<double>())};
     CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, verbose};
     CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
 
@@ -339,6 +341,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("total"),
         py::arg("state_fractions"),
         py::arg("mean_copy_number") = std::nullopt,
+        py::arg("segment_weight") = std::nullopt,
         py::arg("rho") = 100.0,
         py::arg("kappa") = 0.0,
         py::arg("eps") = 1.0,

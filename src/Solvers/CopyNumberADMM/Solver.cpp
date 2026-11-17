@@ -209,6 +209,15 @@ Result solve(const Instance& in, const Options& opt) {
     }
     const Sparse ET = E.transpose();
     const int rows = E.rows;
+    // weight of the squared loss on each state row: w_s of its segment
+    std::vector<double> wrow(rows - n, 1.0);
+    if (!in.segment_weight.empty()) {
+        if (static_cast<int>(in.segment_weight.size()) != ell) throw std::invalid_argument("segment_weight must have one entry per segment");
+        for (int s = 0; s < ell; ++s) {
+            if (!(in.segment_weight[s] > 0.0)) throw std::invalid_argument("segment_weight must be positive");
+            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) wrow[r - n] = in.segment_weight[s];
+        }
+    }
 
     // Penalty per row of E: rho, or kappa times the curvature of the row's loss
     // (SNV i: d / (hat c^2 p (1 - p)) at p = (v + 1/2) / (d + 1); segment rows: 2).
@@ -219,7 +228,7 @@ Result solve(const Instance& in, const Options& opt) {
             double p = (in.variant[i] + 0.5) / (in.total[i] + 1.0);
             rho[i] = opt.kappa * std::max(in.total[i], 1) / (chat[i] * chat[i] * p * (1.0 - p));
         }
-        for (int r = n; r < rows; ++r) rho[r] = opt.kappa * 2.0;
+        for (int r = n; r < rows; ++r) rho[r] = opt.kappa * 2.0 * wrow[r - n];
     }
 
     // Damping (19), sigma_v = sum_j rho_j |e_jv| sum_w |e_jw|.
@@ -265,7 +274,7 @@ Result solve(const Instance& in, const Options& opt) {
         E.multiply(f, Ef_buf);
         double L = 0.0;
         for (int i = 0; i < n; ++i) L += binomial_loss(Ef_buf[i] / chat[i], in.variant[i], in.total[i]);
-        for (int r = n; r < rows; ++r) L += (Ef_buf[r] - mu[r - n]) * (Ef_buf[r] - mu[r - n]);
+        for (int r = n; r < rows; ++r) L += wrow[r - n] * (Ef_buf[r] - mu[r - n]) * (Ef_buf[r] - mu[r - n]);
         return L;
     };
 
@@ -276,11 +285,11 @@ Result solve(const Instance& in, const Options& opt) {
         for (int i = 0; i < n; ++i) d += h_snv(beta[i], chat[i], in.variant[i], in.total[i]);
         for (int s = 0; s < ell; ++s) {
             gs.assign(seg_start[s + 1] - seg_start[s], 0.0);
-            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) gs[r - seg_start[s]] = mu[r - n] + beta[r] / 2.0;
+            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) gs[r - seg_start[s]] = mu[r - n] + beta[r] / (2.0 * wrow[r - n]);
             project_simplex(gs);
             for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) {
                 double g = gs[r - seg_start[s]];
-                d += (g - mu[r - n]) * (g - mu[r - n]) - beta[r] * g;
+                d += wrow[r - n] * (g - mu[r - n]) * (g - mu[r - n]) - beta[r] * g;
             }
         }
         ET.multiply(beta, psi);
@@ -323,7 +332,7 @@ Result solve(const Instance& in, const Options& opt) {
         for (int s = 0; s < ell; ++s) {
             w.assign(seg_start[s + 1] - seg_start[s], 0.0);
             const double rs = rho[seg_start[s]];  // constant within a segment
-            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) w[r - seg_start[s]] = (2.0 * mu[r - n] + rs * z[r]) / (2.0 + rs);
+            for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) w[r - seg_start[s]] = (2.0 * wrow[r - n] * mu[r - n] + rs * z[r]) / (2.0 * wrow[r - n] + rs);
             project_simplex(w);
             for (int r = seg_start[s]; r < seg_start[s + 1]; ++r) yg[r] = w[r - seg_start[s]];
         }

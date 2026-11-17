@@ -25,6 +25,8 @@ namespace CopyNumberADMM {
         std::vector<std::vector<std::tuple<int, int, double>>> state_fractions;
         // hat c_s; if empty, hat c_s = sum over (a,b) of (a + b) mu_{s,(a,b)}
         std::vector<double> mean_copy_number;
+        // w_s, the weight of the squared loss of segment s on the state fractions; if empty, w_s = 1
+        std::vector<double> segment_weight;
     };
 
     struct Options {
