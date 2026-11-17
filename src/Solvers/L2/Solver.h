@@ -18,6 +18,18 @@ namespace L2Solver {
      * exactly 1 and alpha_0 is free.
      *
      * T is the scalar type; Solver = BasicSolver<float> is the original solver.
+     *
+     * Possible speed-ups, not measured (the solver costs about the sum of the
+     * subtree sizes per row, so each is a constant factor):
+     * - Skip the objective when the caller does not need it (fastppm-CN does
+     *   not): f0 needs one evaluation of F per node in update_representation.
+     * - Keep the derivative intercepts of each node from the forward pass,
+     *   instead of recomputing them in compute_argmin during the backtrack.
+     * - Write new targets into the existing buffer in update_frequency_matrix,
+     *   instead of reallocating it on every call.
+     * - Reuse the index buffer of PiecewiseQuadraticF::sum, and merge with a
+     *   heap at nodes with many children.
+     * - Find pieces by binary search (breakpoints are sorted).
      */
     template <typename T>
     class BasicSolver {

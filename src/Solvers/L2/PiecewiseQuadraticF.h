@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <limits>
 
 namespace L2Solver {
 template <typename T>
@@ -121,52 +122,25 @@ public:
         }
     }
 
+    // the derivative on piece p, which is (-inf, b_1) for p = 0 and [b_p, b_{p+1}) otherwise
+    T derivative(T x, size_t p, const std::vector<T>& cs) const {
+        return p == 0 ? c0 + m0 * x : cs[p - 1] + slopes[p - 1] * (x - breakpoints[p - 1]);
+    }
+
+    T slope(size_t p) const { return p == 0 ? m0 : slopes[p - 1]; }
+
+    // F(x) = F(0) + the integral of F' from 0 to x, where F(0) = f0
     T operator()(T x, const std::vector<T>& cs) const {
-        // first we find which piece x and 0.0 are within
-        size_t k = 0, l = 0;
-        for (size_t i = 0; i < breakpoints.size(); i++) {
-            if (breakpoints[i] >= x) {
-                k = i;
-                break;
-            }
+        T lo = std::min(T(0), x), hi = std::max(T(0), x);
+        size_t p = std::upper_bound(breakpoints.begin(), breakpoints.end(), lo) - breakpoints.begin();
+        T integral = 0, t = lo;
+        while (t < hi) {
+            T next = p < breakpoints.size() ? std::min(breakpoints[p], hi) : hi;
+            integral += derivative(t, p, cs) * (next - t) + T(0.5) * slope(p) * (next - t) * (next - t);
+            t = next;
+            p++;
         }
-
-        for (size_t i = 0; i < breakpoints.size(); i++) {
-            if (breakpoints[i] >= 0.0f) {
-                l = i;
-                break;
-            }
-        }
-
-        // set value at the breakpoint containing 0.0
-        T value;
-        if (l == 0) {
-            value = f0 + c0 * breakpoints[l] + 0.5f * m0 * (breakpoints[l] * breakpoints[l]);
-        } else {
-            value = f0 + (cs[l - 1] - slopes[l - 1] * breakpoints[l - 1]) * (breakpoints[l]) + 0.5 * slopes[l - 1] * (breakpoints[l] * breakpoints[l]);
-        }
-
-        // compute value at the breakpoint containing x
-        if (k > l) {
-            for (size_t i = l + 1; i < k; i++) {
-                value += (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-                value += 0.5f * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
-            }
-        }
-
-        if (k <= l) {
-            for (size_t i = l; i >= k && i > 0; i--) {
-                value -= (cs[i - 1] - slopes[i - 1] * breakpoints[i - 1]) * (breakpoints[i] - breakpoints[i - 1]);
-                value -= 0.5f * slopes[i - 1] * (breakpoints[i] * breakpoints[i] - breakpoints[i - 1] * breakpoints[i - 1]);
-            }
-        }
-
-        // compute value at x
-        if (k == 0) {
-            return value + (c0 * (x - breakpoints[0]) + 0.5f * m0 * (x * x - breakpoints[0] * breakpoints[0]));
-        } else {
-            return value + (cs[k - 1] - slopes[k - 1] * breakpoints[k - 1]) * (x - breakpoints[k - 1]) + 0.5f * slopes[k - 1] * (x * x - breakpoints[k - 1] * breakpoints[k - 1]);
-        }
+        return x >= 0 ? f0 + integral : f0 - integral;
     }
 
     // when F = \sum{j \in \delta(i)}J_j, this updates F to be 
@@ -178,8 +152,8 @@ public:
 
         get_derivative_intercepts(cs);
 
-        // find first breakpoint x such that \alpha_i^*(x) = 0
-        size_t l = 0;
+        // find the piece of F that contains 0: l is the number of breakpoints <= 0
+        size_t l = breakpoints.size();
         for (size_t i = 0; i < breakpoints.size(); i++) {
             if (breakpoints[i] > 0.0f) {
                 l = i;
@@ -214,12 +188,18 @@ public:
                 new_slope = -(slopes[i + l - 1] / (2.0f*weight*slopes[i + l - 1] - 1.0f));
             }
 
-            // remove duplicate slopes or breakpoints
+            // remove duplicate breakpoints (the earlier piece has no width, so the new piece replaces it)
+            // and duplicate slopes (the new breakpoint is not a kink, so it is dropped)
+            // (tolerances relative to the magnitudes, which vary with the weights)
             if (i > 0) {
-                if ((new_breakpoint - result.breakpoints[i - num_duplicates - 1] < 1e-8f) && (new_breakpoint - result.breakpoints[i - num_duplicates - 1] > -1e-8f)) {
+                T prev_breakpoint = result.breakpoints[i - num_duplicates - 1];
+                T prev_slope = result.slopes[i - num_duplicates - 1];
+                T tol = 64 * std::numeric_limits<T>::epsilon();
+                if (std::abs(new_breakpoint - prev_breakpoint) <= tol * std::max(std::abs(new_breakpoint), std::abs(prev_breakpoint))) {
                     num_duplicates++;
-                } else if ((new_slope - result.slopes[i - num_duplicates - 1] < 1e-9f) && (new_slope - result.slopes[i - num_duplicates - 1] > -1e-9f)) {
+                } else if (std::abs(new_slope - prev_slope) <= tol * std::max(std::abs(new_slope), std::abs(prev_slope))) {
                     num_duplicates++;
+                    continue;
                 }
             }
 
@@ -233,6 +213,8 @@ public:
         T new_m0 = -half_weight_inv;
         T new_c0 = frequency;
 
+        // find the piece of F that contains alpha^*(0): l is the number of breakpoints of the new function <= 0
+        l = breakpoints.size();
         for (size_t i = 0; i < breakpoints.size(); i++) {
             if (2.0 * weight * (frequency - cs[i]) + breakpoints[i] > 0.0f) {
                 l = i;
