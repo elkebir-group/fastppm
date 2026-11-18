@@ -43,6 +43,9 @@ namespace CopyNumberADMM {
         int anderson_memory = 10; // Anderson acceleration with this many past steps (0: off; SCS default 10)
         double anderson_reg = 1e-10;
         bool warm_prox = true;   // start the y-update of each SNV from its previous value
+        // warm start: usages to start from (one per clone; empty: uniform). The multipliers start at
+        // lambda = grad L(E f) / rho, the value they take at a fixed point with these usages.
+        std::vector<double> initial_usages;
     };
 
     struct Result {

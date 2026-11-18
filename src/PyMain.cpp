@@ -277,7 +277,8 @@ py::dict regress_copy_number(
     bool verbose,
     bool warm_prox,
     int anderson_memory,
-    double anderson_reg
+    double anderson_reg,
+    const std::optional<std::vector<double>>& initial_usages
 ) {
     // SNV inputs are NumPy arrays (lists are converted): one copy instead of a conversion per element
     if (multiplicity.ndim() != 2 || multiplicity.shape(1) != static_cast<py::ssize_t>(parent.size()))
@@ -294,7 +295,8 @@ py::dict regress_copy_number(
     CopyNumberADMM::Instance instance{parent, states, mult, vec(segment), vec(variant), vec(total), state_fractions,
                                       mean_copy_number.value_or(std::vector<double>()),
                                       segment_weight.value_or(std::vector<double>())};
-    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose, anderson_memory, anderson_reg, warm_prox};
+    CopyNumberADMM::Options options{rho, kappa, eps, max_iterations, check_every, polish_steps, alpha, verbose, anderson_memory, anderson_reg, warm_prox, {}};
+    if (initial_usages) options.initial_usages = *initial_usages;
     CopyNumberADMM::Result r = CopyNumberADMM::solve(instance, options);
 
     py::dict result;
@@ -373,6 +375,7 @@ PYBIND11_MODULE(fastppm, m) {
         py::arg("verbose") = false,
         py::arg("warm_prox") = true,
         py::arg("anderson_memory") = 10,
-        py::arg("anderson_reg") = 1e-10
+        py::arg("anderson_reg") = 1e-10,
+        py::arg("initial_usages") = std::nullopt
     );
 }

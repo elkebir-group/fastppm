@@ -493,7 +493,29 @@ Result solve(const Instance& in, const Options& opt) {
     // Algorithm 1.
     std::vector<double> f = f_from_u(std::vector<double>(k, 1.0 / k));
     std::vector<double> lam(rows, 0.0), Ef(rows), z(rows), yg(rows), q(rows), ETq(k), beta(rows), w;
+    if (!opt.initial_usages.empty()) {
+        if (static_cast<int>(opt.initial_usages.size()) != k) throw std::invalid_argument("initial_usages must have one entry per clone");
+        // usages clipped below at a small floor (an SNV with variant reads needs a positive
+        // frequency) and normalized to sum to 1
+        std::vector<double> u0(k);
+        double sum = 0.0;
+        for (int v = 0; v < k; ++v) sum += (u0[v] = std::max(opt.initial_usages[v], 1e-6));
+        for (double& x : u0) x /= sum;
+        f = f_from_u(u0);
+    }
     E.multiply(f, Ef);
+    if (!opt.initial_usages.empty()) {
+        // lambda = grad L(E f) / rho: the y-update is then at its fixed point y = E f
+        for (int i = 0; i < n; ++i) {
+            // the VAF clipped to [1 / (2 (d + 1)), 1 - 1 / (2 (d + 1))], the resolution of the reads: a
+            // clone whose starting usage is 0 would otherwise give a huge multiplier that ADMM cannot undo
+            const double lo = 0.5 / (in.total[i] + 1.0);
+            const double pi = std::min(std::max(Ef[i] / chat[i], lo), 1.0 - lo);
+            const double g = (-in.variant[i] / pi + (in.total[i] - in.variant[i]) / (1.0 - pi)) / chat[i];
+            lam[i] = g / rho[i];
+        }
+        for (int r = n; r < rows; ++r) lam[r] = 2.0 * wrow[r - n] * (Ef[r] - mu[r - n]) / rho[r];
+    }
 
     Result res;
     res.converged = false;
